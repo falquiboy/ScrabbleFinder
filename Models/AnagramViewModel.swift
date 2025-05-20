@@ -1,11 +1,18 @@
 import Foundation
 import SQLite3
 
+struct ExtraLetterWord: Identifiable {
+    let id = UUID()
+    let word: String
+    let extraLetter: Character
+}
+
 /// ViewModel for fetching anagrams from the bundled SQLite database.
 final class AnagramViewModel: ObservableObject {
     // MARK: - Published properties for SwiftUI
     @Published var query: String = ""
     @Published var results: [String] = []
+    @Published var extraLetterResults: [ExtraLetterWord] = []
     
     // MARK: - Private SQLite handle
     private var db: OpaquePointer?
@@ -71,6 +78,39 @@ final class AnagramViewModel: ObservableObject {
         print("✅ Fetched \(fetched) rows")
         
         sqlite3_finalize(stmt)
+        
+        // 6) Search with one extra letter
+        var extendedResults = [ExtraLetterWord]()
+        let letters = "AÇBCDEFGHIJKLMNOPQRSTUVWXYZNÑ" // Include your internal representation
+        for letter in letters {
+            let extendedQuery = normalized + String(letter)
+            let extendedAlphagram = getAnagram(extendedQuery)
+            let extendedLength = Int32(extendedQuery.count)
+            
+            var extStmt: OpaquePointer?
+            let extSQL = "SELECT word FROM words WHERE length = ? AND alphagram = ?;"
+            if sqlite3_prepare_v2(db, extSQL, -1, &extStmt, nil) == SQLITE_OK {
+                sqlite3_bind_int(extStmt, 1, extendedLength)
+                sqlite3_bind_text(
+                    extStmt,
+                    2,
+                    (extendedAlphagram as NSString).utf8String,
+                    -1,
+                    unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+                )
+                while sqlite3_step(extStmt) == SQLITE_ROW {
+                    if let cStr = sqlite3_column_text(extStmt, 0) {
+                        let internalWord = String(cString: cStr)
+                        if !results.contains(internalWord) {
+                            let displayWord = denormalize(internalWord)
+                            extendedResults.append(ExtraLetterWord(word: displayWord, extraLetter: letter))
+                        }
+                    }
+                }
+            }
+            sqlite3_finalize(extStmt)
+        }
+        extraLetterResults = extendedResults.sorted { $0.word < $1.word }
     }
 
     // MARK: - Cleanup
@@ -78,4 +118,3 @@ final class AnagramViewModel: ObservableObject {
         sqlite3_close(db)
     }
 }
-
