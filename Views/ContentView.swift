@@ -4,42 +4,57 @@ import SafariServices
 struct ContentView: View {
     @StateObject private var viewModel = AnagramViewModel()
     @State private var selectedItem: SafariItem?
+    @FocusState private var isQueryFocused: Bool
+    @State private var hasSearched: Bool = false
 
     var body: some View {
         VStack {
             HStack {
-                TextField("INGRESA LETRAS O PALABRA", text: Binding(
+                TextField("INGRESA LETRAS", text: Binding(
                     get: { viewModel.query },
                     set: { viewModel.query = $0.uppercased() }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .textInputAutocapitalization(.characters)
                 .disableAutocorrection(true)
-
-                Button(action: {
-                    if viewModel.query.isEmpty {
-                        // No acción necesaria
-                    } else {
-                        viewModel.query = ""
-                        viewModel.results = []
+                .focused($isQueryFocused)
+                .submitLabel(.search)
+                .onSubmit {
+                    viewModel.searchAnagrams()
+                }
+                .overlay(
+                    HStack {
+                        Spacer()
+                        if !viewModel.query.isEmpty {
+                            Button {
+                                viewModel.query = ""
+                                viewModel.results.removeAll()
+                                viewModel.extraLetterResults.removeAll()
+                                hasSearched = false
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.trailing, 8)
+                        }
                     }
-                }) {
-                    Image(systemName: viewModel.query.isEmpty ? "magnifyingglass" : "xmark.circle.fill")
-                        .foregroundColor(.gray)
+                )
+
+                Button {
+                    viewModel.searchAnagrams()
+                    hasSearched = true
+                    isQueryFocused = false
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.title2)
                 }
             }
             .padding()
 
-            Button("Buscar anagramas") {
-                viewModel.searchAnagrams()
-            }
-            .padding()
-            .disabled(viewModel.query.trimmingCharacters(in: .whitespaces).isEmpty)
-
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     if !viewModel.results.isEmpty {
-                        Text("\(viewModel.results.count) palabras encontradas")
+                        Text("\(viewModel.results.count) palabras con todas las fichas")
                             .font(.title3)
                             .bold()
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
@@ -56,14 +71,15 @@ struct ContentView: View {
                                     .cornerRadius(6)
                             }
                         }
-                    } else {
-                        Text("No hay resultados")
-                            .foregroundColor(.secondary)
+                    } else if hasSearched && viewModel.results.isEmpty {
+                        Text("0 palabras con todas las fichas")
+                            .font(.title3)
+                            .bold()
                             .padding(.top)
                     }
 
                     if !viewModel.extraLetterResults.isEmpty {
-                        Text("\(viewModel.extraLetterResults.count) palabras con una letra adicional")
+                        Text("\(viewModel.extraLetterResults.count) palabras con una ficha adicional")
                             .font(.title3)
                             .bold()
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
