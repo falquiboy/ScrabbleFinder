@@ -81,7 +81,7 @@ final class AnagramViewModel: ObservableObject {
         
         // 6) Search with one extra letter
         var extendedResults = [ExtraLetterWord]()
-        let letters = "AÇBCDEFGHIJKLMNOPQRSTUVWXYZNÑ" // Include your internal representation
+        let letters = "AÇBCDEFGHIJKLMNOPQRSTUVWXYZÑ" // Include your internal representation
         for letter in letters {
             let extendedQuery = normalized + String(letter)
             let extendedAlphagram = getAnagram(extendedQuery)
