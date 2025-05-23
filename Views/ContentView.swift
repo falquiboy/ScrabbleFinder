@@ -10,11 +10,18 @@ struct ContentView: View {
 
     /// Copies all currently displayed words (denormalized) to the clipboard, one per line.
     private func copyAllWords() {
-        let allWords = viewModel.results
-            + viewModel.extraLetterResults.map { $0.word }
-            + viewModel.wildcardResults.map { $0.word }
+        var wordsToCopy: [String] = []
+        if !viewModel.wildcardResults.isEmpty {
+            wordsToCopy = viewModel.wildcardResults.map { $0.word }
+        } else if viewModel.enableShorterWords {
+            wordsToCopy = viewModel.shorterWordsResults
+        } else {
+            wordsToCopy.append(contentsOf: viewModel.results)
+            wordsToCopy.append(contentsOf: viewModel.extraLetterResults.map { $0.word })
+        }
+        
         #if canImport(UIKit)
-        UIPasteboard.general.string = allWords.joined(separator: "\n")
+        UIPasteboard.general.string = wordsToCopy.joined(separator: "\n")
         #endif
     }
 
@@ -39,10 +46,13 @@ struct ContentView: View {
                         if !viewModel.query.isEmpty {
                             Button {
                                 viewModel.query = ""
+                                viewModel.query = ""
                                 viewModel.results.removeAll()
                                 viewModel.extraLetterResults.removeAll()
                                 viewModel.wildcardResults.removeAll()
+                                viewModel.shorterWordsResults.removeAll() // Clear shorter words results
                                 hasSearched = false
+                                // viewModel.enableShorterWords = false // Optionally reset toggle
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(.secondary)
@@ -66,60 +76,19 @@ struct ContentView: View {
                     Image(systemName: "doc.on.doc")
                         .font(.title2)
                 }
-                .disabled(viewModel.results.isEmpty && viewModel.extraLetterResults.isEmpty && viewModel.wildcardResults.isEmpty)
+                .disabled(shouldDisableCopyButton())
             }
-            .padding()
+            .padding(.horizontal)
+            .padding(.top)
+
+            Toggle("Buscar palabras más cortas", isOn: $viewModel.enableShorterWords)
+                .padding(.horizontal)
+                .disabled(!viewModel.wildcardResults.isEmpty) // Disable toggle if wildcard results are shown
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-                    if !viewModel.results.isEmpty {
-                        Text("\(viewModel.results.count) palabras con todas las fichas")
-                            .font(.title3)
-                            .bold()
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                            ForEach(viewModel.results.sorted(by: spanishScrabbleOrder), id: \.self) { word in
-                                Text(word)
-                                    .onTapGesture {
-                                        if let url = URL(string: "https://dle.rae.es/\(word)") {
-                                            selectedItem = SafariItem(url)
-                                        }
-                                    }
-                                    .padding(4)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color(.systemGray6))
-                                    .cornerRadius(6)
-                            }
-                        }
-                    } else if hasSearched && viewModel.results.isEmpty {
-                        Text("0 palabras con todas las fichas")
-                            .font(.title3)
-                            .bold()
-                            .padding(.top)
-                    }
-
-                    if !viewModel.extraLetterResults.isEmpty {
-                        Text("\(viewModel.extraLetterResults.count) palabras con una ficha adicional")
-                            .font(.title3)
-                            .bold()
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                            ForEach(viewModel.extraLetterResults.sorted {
-                                spanishScrabbleOrderWithKey($0.word, $1.word, keyA: $0.extraLetter, keyB: $1.extraLetter)
-                            }) { entry in
-                                let attributed = highlightExtraLetter(in: entry.word, extra: entry.extraLetter)
-                                Text(attributed)
-                                    .onTapGesture {
-                                        if let url = URL(string: "https://dle.rae.es/\(entry.word)") {
-                                            selectedItem = SafariItem(url)
-                                        }
-                                    }
-                                    .padding(4)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color(.systemGray6))
-                                    .cornerRadius(6)
-                            }
-                        }
-                    }
                     if !viewModel.wildcardResults.isEmpty {
+                        // Section for Wildcard Results
                         Text("\(viewModel.wildcardResults.count) palabras con comodines")
                             .font(.title3)
                             .bold()
@@ -138,15 +107,107 @@ struct ContentView: View {
                                     .cornerRadius(6)
                             }
                         }
+                        // No specific "0 wildcard results" message typically, as this section only shows if results exist.
+                        // ViewModel already ensures wildcardResults is populated only if matches are found.
+                    } else { // No wildcards
+                        if viewModel.enableShorterWords {
+                            // Section for Shorter Words Results
+                            if !viewModel.shorterWordsResults.isEmpty {
+                                Text("\(viewModel.shorterWordsResults.count) palabras más cortas")
+                                    .font(.title3)
+                                    .bold()
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                    ForEach(viewModel.shorterWordsResults, id: \.self) { word in // Already sorted by ViewModel
+                                        Text(word)
+                                            .onTapGesture {
+                                                if let url = URL(string: "https://dle.rae.es/\(word)") {
+                                                    selectedItem = SafariItem(url)
+                                                }
+                                            }
+                                            .padding(4)
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color(.systemGray6))
+                                            .cornerRadius(6)
+                                    }
+                                }
+                            } else if hasSearched {
+                                Text("0 palabras más cortas encontradas")
+                                    .font(.headline)
+                                    .padding(.top)
+                            }
+                        } else {
+                            // Section for Exact Matches
+                            if !viewModel.results.isEmpty {
+                                Text("\(viewModel.results.count) palabras con todas las fichas")
+                                    .font(.title3)
+                                    .bold()
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                    ForEach(viewModel.results.sorted(by: spanishScrabbleOrder), id: \.self) { word in
+                                        Text(word)
+                                            .onTapGesture {
+                                                if let url = URL(string: "https://dle.rae.es/\(word)") {
+                                                    selectedItem = SafariItem(url)
+                                                }
+                                            }
+                                            .padding(4)
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color(.systemGray6))
+                                            .cornerRadius(6)
+                                    }
+                                }
+                            } else if hasSearched {
+                                 Text("0 palabras con todas las fichas")
+                                    .font(.title3) // Kept .title3 as per original for this message
+                                    .bold()
+                                    .padding(.top)
+                            }
+
+                            // Section for Extra Letter Results
+                            if !viewModel.extraLetterResults.isEmpty {
+                                Text("\(viewModel.extraLetterResults.count) palabras con una ficha adicional")
+                                    .font(.title3)
+                                    .bold()
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                    ForEach(viewModel.extraLetterResults.sorted {
+                                        spanishScrabbleOrderWithKey($0.word, $1.word, keyA: $0.extraLetter, keyB: $1.extraLetter)
+                                    }) { entry in
+                                        let attributed = highlightExtraLetter(in: entry.word, extra: entry.extraLetter)
+                                        Text(attributed)
+                                            .onTapGesture {
+                                                if let url = URL(string: "https://dle.rae.es/\(entry.word)") {
+                                                    selectedItem = SafariItem(url)
+                                                }
+                                            }
+                                            .padding(4)
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color(.systemGray6))
+                                            .cornerRadius(6)
+                                    }
+                                }
+                            }
+                            // No "0 extra letter results" message was in original; not adding one unless specified.
+                        }
                     }
                 }
                 .padding(.horizontal)
             }
         }
-        .padding()
+        .padding(.bottom) // Adjusted padding to .bottom only, as .horizontal and .top are on the HStack
         .sheet(item: $selectedItem) { item in
             SafariView(url: item.url)
                 .presentationDetents([.medium, .large])
+        }
+    }
+
+    private func shouldDisableCopyButton() -> Bool {
+        if !viewModel.wildcardResults.isEmpty {
+            // This case implies wildcardResults is not empty, so copy shouldn't be disabled.
+            // However, if somehow it could be empty, this would catch it.
+            return viewModel.wildcardResults.isEmpty
+        } else if viewModel.enableShorterWords {
+            return viewModel.shorterWordsResults.isEmpty
+        } else {
+            return viewModel.results.isEmpty && viewModel.extraLetterResults.isEmpty
         }
     }
 }

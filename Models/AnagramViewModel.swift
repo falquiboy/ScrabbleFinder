@@ -25,6 +25,8 @@ final class AnagramViewModel: ObservableObject {
     @Published var results: [String] = []                    // palabras exactas
     @Published var extraLetterResults: [ExtraLetterWord] = []// +1 ficha
     @Published var wildcardResults: [WildcardWord] = []      // con “?”
+    @Published var shorterWordsResults: [String] = []        // palabras más cortas
+    @Published var enableShorterWords: Bool = false          // habilitar búsqueda de palabras más cortas
 
     // Trie raíz
     private let trieRoot: TrieNode
@@ -63,6 +65,7 @@ final class AnagramViewModel: ObservableObject {
         results.removeAll()
         extraLetterResults.removeAll()
         wildcardResults.removeAll()
+        shorterWordsResults.removeAll()
 
         // --------------------------------------------------------------------
         // 1) Procesa texto del usuario → internalBuffer + wildcardCount
@@ -107,30 +110,61 @@ final class AnagramViewModel: ObservableObject {
         // 2) Sin comodines
         // --------------------------------------------------------------------
         if wildcardCount == 0 {
+            if enableShorterWords {
+                // --- Calculate and populate shorterWordsResults ---
+                // Ensure results and extraLetterResults are empty
+                results.removeAll()
+                extraLetterResults.removeAll()
 
-            // 2-a  exactas
-            let alpha      = alphagram(of: normalized)
-            let exactRaw   = trieRoot.searchByAlphagram(alpha)
-            results        = exactRaw.map { denormalize($0) }
-
-            // 2-b  +1 ficha
-            var extras: [ExtraLetterWord] = []
-            let letters = "AÇBCDEFGHIJKLMNOPQRSTUVWXYZÑ"
-            for letter in letters {
-                let extAlpha = alphagram(of: normalized + String(letter))
-                let matches  = trieRoot.searchByAlphagram(extAlpha)
-                for w in matches where !exactRaw.contains(w) {
-                    extras.append(ExtraLetterWord(word: denormalize(w),
-                                                 extraLetter: letter))
+                // Assuming trieRoot.searchBySubAlphagrams takes the non-alphagrammed 'normalized' string
+                // and handles alphagramming internally if needed for its logic.
+                let foundShorterInternal = trieRoot.searchBySubAlphagrams(normalized)
+                
+                // Filter for words strictly shorter than the query and ensure uniqueness.
+                // The check against `results` is no longer needed as `results` will be empty here.
+                let shorterAndUnique = Set(foundShorterInternal
+                    .map { denormalize($0) }
+                    .filter { $0.count < query.count }) // query.count is the original user input length
+                
+                shorterWordsResults = Array(shorterAndUnique).sorted {
+                    if $0.count != $1.count {
+                        return $0.count > $1.count // Descendente por longitud
+                    }
+                    // Using basic alphabetical sort as spanishScrabbleOrder is not in this file.
+                    // This can be refined if sorting helpers are moved/made accessible.
+                    return $0 < $1 // Alfabéticamente para misma longitud
                 }
-            }
-            extraLetterResults = extras.sorted { $0.word < $1.word }
-            return
-        }
+            } else {
+                // --- Calculate and populate results (exact) and extraLetterResults ---
+                // Ensure shorterWordsResults is empty
+                shorterWordsResults.removeAll()
 
-        // --------------------------------------------------------------------
-        // 3) Con comodines (hasta 2 “?”)
-        // --------------------------------------------------------------------
+                let alpha = alphagram(of: normalized)
+                let exactRaw = trieRoot.searchByAlphagram(alpha)
+                // Using basic alphabetical sort for results
+                results = exactRaw.map { denormalize($0) }.sorted()
+
+                var extras: [ExtraLetterWord] = []
+                let letters = "AÇBCDEFGHIJKLMNOPQRSTUVWXYZÑ" // Consider moving this to a constant
+                for letter in letters {
+                    let extAlpha = alphagram(of: normalized + String(letter))
+                    let matches = trieRoot.searchByAlphagram(extAlpha)
+                    for w in matches where !exactRaw.contains(w) { // Avoid duplicates from exactRaw
+                        extras.append(ExtraLetterWord(word: denormalize(w),
+                                                     extraLetter: letter))
+                    }
+                }
+                // Using basic alphabetical sort for extraLetterResults word
+                extraLetterResults = extras.sorted { $0.word < $1.word }
+            }
+        } else {
+            // --- Wildcard logic ---
+            // Ensure other result arrays are clear
+            results.removeAll()
+            extraLetterResults.removeAll()
+            shorterWordsResults.removeAll()
+
+            // (Original wildcard logic remains here)
         let letters = Array("AÇBCDEFGHIJKLMNOPQRSTUVWXYZÑ")
         var seen   = Set<String>()
         var found: [WildcardWord] = []
@@ -157,6 +191,7 @@ final class AnagramViewModel: ObservableObject {
         default: break
         }
 
+        // Using basic alphabetical sort for wildcardResults word
         wildcardResults = found.sorted { $0.word < $1.word }
     }
 
