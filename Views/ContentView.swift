@@ -1,11 +1,22 @@
 import SwiftUI
 import SafariServices
+import UIKit
 
 struct ContentView: View {
     @StateObject private var viewModel = AnagramViewModel()
     @State private var selectedItem: SafariItem?
     @FocusState private var isQueryFocused: Bool
     @State private var hasSearched: Bool = false
+
+    /// Copies all currently displayed words (denormalized) to the clipboard, one per line.
+    private func copyAllWords() {
+        let allWords = viewModel.results
+            + viewModel.extraLetterResults.map { $0.word }
+            + viewModel.wildcardResults.map { $0.word }
+        #if canImport(UIKit)
+        UIPasteboard.general.string = allWords.joined(separator: "\n")
+        #endif
+    }
 
     var body: some View {
         VStack {
@@ -30,6 +41,7 @@ struct ContentView: View {
                                 viewModel.query = ""
                                 viewModel.results.removeAll()
                                 viewModel.extraLetterResults.removeAll()
+                                viewModel.wildcardResults.removeAll()
                                 hasSearched = false
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
@@ -48,6 +60,13 @@ struct ContentView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.title2)
                 }
+                Button {
+                    copyAllWords()
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                        .font(.title2)
+                }
+                .disabled(viewModel.results.isEmpty && viewModel.extraLetterResults.isEmpty && viewModel.wildcardResults.isEmpty)
             }
             .padding()
 
@@ -100,6 +119,26 @@ struct ContentView: View {
                             }
                         }
                     }
+                    if !viewModel.wildcardResults.isEmpty {
+                        Text("\(viewModel.wildcardResults.count) palabras con comodines")
+                            .font(.title3)
+                            .bold()
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                            ForEach(viewModel.wildcardResults.sorted(by: { spanishScrabbleOrder($0.word, $1.word) })) { entry in
+                                let attributed = highlightWildcards(in: entry.word, wildcards: entry.wildcardLetters)
+                                Text(attributed)
+                                    .onTapGesture {
+                                        if let url = URL(string: "https://dle.rae.es/\(entry.word)") {
+                                            selectedItem = SafariItem(url)
+                                        }
+                                    }
+                                    .padding(4)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(6)
+                            }
+                        }
+                    }
                 }
                 .padding(.horizontal)
             }
@@ -123,6 +162,18 @@ func highlightExtraLetter(in word: String, extra: Character) -> AttributedString
     } else {
         // Normal single character
         if let range = attributed.range(of: String(extra), options: [.caseInsensitive]) {
+            attributed[range].foregroundColor = .red
+            attributed[range].font = .body.bold()
+        }
+    }
+    return attributed
+}
+
+func highlightWildcards(in word: String, wildcards: [Character]) -> AttributedString {
+    var attributed = AttributedString(word)
+    for letter in wildcards {
+        let display = internalToDigraphs[letter] ?? String(letter)
+        if let range = attributed.range(of: display, options: [.caseInsensitive]) {
             attributed[range].foregroundColor = .red
             attributed[range].font = .body.bold()
         }

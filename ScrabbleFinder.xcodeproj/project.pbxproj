@@ -12,9 +12,9 @@
 		583CA6CE2DDADA6F005C9429 /* AnagramViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583CA6CD2DDADA6F005C9429 /* AnagramViewModel.swift */; };
 		583CA6D12DDADE93005C9429 /* scrabble_words.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 583CA6D02DDADE93005C9429 /* scrabble_words.sqlite */; };
 		583CA6D52DDAE829005C9429 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583CA6D42DDAE822005C9429 /* ContentView.swift */; };
+		584D6D462DDEA438007E40F3 /* trie.bin in Resources */ = {isa = PBXBuildFile; fileRef = 584D6D452DDEA438007E40F3 /* trie.bin */; };
 		58F28F9E2DDE4875003813CC /* TrieKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58F28F962DDE4875003813CC /* TrieKit.framework */; };
 		58F28F9F2DDE4875003813CC /* TrieKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 58F28F962DDE4875003813CC /* TrieKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		58F28FAA2DDE601D003813CC /* trie.bin in Resources */ = {isa = PBXBuildFile; fileRef = 58F28FA92DDE601D003813CC /* trie.bin */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,9 +47,9 @@
 		583CA6CD2DDADA6F005C9429 /* AnagramViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnagramViewModel.swift; sourceTree = "<group>"; };
 		583CA6D02DDADE93005C9429 /* scrabble_words.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = scrabble_words.sqlite; sourceTree = "<group>"; };
 		583CA6D42DDAE822005C9429 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		584D6D452DDEA438007E40F3 /* trie.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = trie.bin; sourceTree = "<group>"; };
 		58F28F8C2DDCF1AE003813CC /* ScrabbleFinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScrabbleFinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58F28F962DDE4875003813CC /* TrieKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TrieKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		58F28FA92DDE601D003813CC /* trie.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = trie.bin; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -111,7 +111,7 @@
 			isa = PBXGroup;
 			children = (
 				583CA6D02DDADE93005C9429 /* scrabble_words.sqlite */,
-				58F28FA92DDE601D003813CC /* trie.bin */,
+				584D6D452DDEA438007E40F3 /* trie.bin */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -236,7 +236,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				583CA6C42DD97076005C9429 /* Assets.xcassets in Resources */,
-				58F28FAA2DDE601D003813CC /* trie.bin in Resources */,
+				584D6D462DDEA438007E40F3 /* trie.bin in Resources */,
 				583CA6D12DDADE93005C9429 /* scrabble_words.sqlite in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
