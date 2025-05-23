@@ -13,6 +13,8 @@ final class AnagramViewModel: ObservableObject {
     @Published var query: String = ""
     @Published var results: [String] = []
     @Published var extraLetterResults: [ExtraLetterWord] = []
+    @Published var showShorterWords: Bool = false
+    @Published var shorterWordsResults: [String] = []
     
     // MARK: - Private SQLite handle
     private var db: OpaquePointer?
@@ -36,6 +38,7 @@ final class AnagramViewModel: ObservableObject {
     // MARK: - Public search method
     /// Normalize input, filter by length + alphagram, then denormalize results.
     func searchAnagrams() {
+        shorterWordsResults.removeAll()
         results.removeAll()
         
         // 1) Uppercase & normalize digraphs → internal form
@@ -111,7 +114,101 @@ final class AnagramViewModel: ObservableObject {
             sqlite3_finalize(extStmt)
         }
         extraLetterResults = extendedResults.sorted { $0.word < $1.word }
+        
+        // 7) Search for shorter words if showShorterWords is true
+        if showShorterWords {
+            var shorterWordsSet = Set<String>() // Use a set to avoid duplicates initially
+            let characters = Array(normalized)
+            
+            for lengthInt in (3..<normalized.count).reversed() {
+                let combinations = generateCombinations(characters: characters, length: lengthInt)
+                for combo in combinations {
+                    let subAlphagram = getAnagram(String(combo))
+                    let subLength = Int32(combo.count)
+                    
+                    let sql = "SELECT word FROM words WHERE length = ? AND alphagram = ?;"
+                    var stmt: OpaquePointer?
+                    guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+                        let err = String(cString: sqlite3_errmsg(db))
+                        print("❌ Shorter words prepare failed: \(err)")
+                        continue
+                    }
+                    
+                    sqlite3_bind_int(stmt, 1, subLength)
+                    sqlite3_bind_text(
+                        stmt,
+                        2,
+                        (subAlphagram as NSString).utf8String,
+                        -1,
+                        unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+                    )
+                    
+                    while sqlite3_step(stmt) == SQLITE_ROW {
+                        if let cStr = sqlite3_column_text(stmt, 0) {
+                            let internalWord = String(cString: cStr)
+                            // Ensure the found word is not the same as the input query or its direct anagrams
+                            if internalWord != normalized && !results.contains(denormalize(internalWord)) {
+                                shorterWordsSet.insert(denormalize(internalWord))
+                            }
+                        }
+                    }
+                    sqlite3_finalize(stmt)
+                }
+            }
+            
+            // Sort the results: first by length (descending), then alphabetically
+            shorterWordsResults = Array(shorterWordsSet).sorted {
+                if $0.count != $1.count {
+                    return $0.count > $1.count
+                }
+                return $0 < $1
+            }
+        }
     }
+
+    // MARK: - Helper for combinations
+    /// Generates unique combinations of characters from the input array.
+    private func generateCombinations(characters: [Character], length: Int) -> [String] {
+        var result = Set<String>() // Use a Set to store unique combinations as strings
+        
+        guard length > 0 && length <= characters.count else {
+            return []
+        }
+        
+        var indices = Array(0..<length)
+        
+        func findCombinations() {
+            var currentCombinationChars = [Character]()
+            for index in indices {
+                currentCombinationChars.append(characters[index])
+            }
+            // Sort characters within the combination to ensure uniqueness of the combination itself
+            // e.g., "AB" and "BA" from input "ABC" should be treated as the same combination of letters.
+            // The alphagram later handles the canonical representation for DB lookup.
+            result.insert(String(currentCombinationChars.sorted()))
+
+            // Find the rightmost index that can be incremented
+            var i = length - 1
+            while i >= 0 && indices[i] == i + characters.count - length {
+                i -= 1
+            }
+            
+            if i < 0 {
+                return // All combinations generated
+            }
+            
+            indices[i] += 1
+            for j in (i+1)..<length {
+                indices[j] = indices[j-1] + 1
+            }
+            findCombinations()
+        }
+        
+        findCombinations()
+        // The result set already stores unique sorted strings. Convert to array.
+        return Array(result)
+    }
+
 
     // MARK: - Cleanup
     deinit {

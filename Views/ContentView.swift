@@ -30,6 +30,7 @@ struct ContentView: View {
                                 viewModel.query = ""
                                 viewModel.results.removeAll()
                                 viewModel.extraLetterResults.removeAll()
+                                viewModel.shorterWordsResults.removeAll() // Clear shorter words results too
                                 hasSearched = false
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
@@ -51,53 +52,95 @@ struct ContentView: View {
             }
             .padding()
 
+            Toggle("Mostrar palabras más cortas", isOn: Binding(
+                get: { viewModel.showShorterWords },
+                set: {
+                    viewModel.showShorterWords = $0
+                    if hasSearched {
+                        viewModel.searchAnagrams()
+                    }
+                }
+            ))
+            .padding(.horizontal)
+
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-                    if !viewModel.results.isEmpty {
-                        Text("\(viewModel.results.count) palabras con todas las fichas")
-                            .font(.title3)
-                            .bold()
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                            ForEach(viewModel.results.sorted(by: spanishScrabbleOrder), id: \.self) { word in
-                                Text(word)
-                                    .onTapGesture {
-                                        if let url = URL(string: "https://dle.rae.es/\(word)") {
-                                            selectedItem = SafariItem(url)
+                    // Sections for Exact Matches and Extra Letter Matches - shown when showShorterWords is OFF
+                    if !viewModel.showShorterWords {
+                        if !viewModel.results.isEmpty {
+                            Text("\(viewModel.results.count) palabras con todas las fichas")
+                                .font(.title3)
+                                .bold()
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                ForEach(viewModel.results.sorted(by: spanishScrabbleOrder), id: \.self) { word in
+                                    Text(word)
+                                        .onTapGesture {
+                                            if let url = URL(string: "https://dle.rae.es/\(word)") {
+                                                selectedItem = SafariItem(url)
+                                            }
                                         }
-                                    }
-                                    .padding(4)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color(.systemGray6))
-                                    .cornerRadius(6)
+                                        .padding(4)
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(6)
+                                }
+                            }
+                        } else if hasSearched && viewModel.results.isEmpty {
+                            Text("0 palabras con todas las fichas")
+                                .font(.title3)
+                                .bold()
+                                .padding(.top)
+                        }
+
+                        if !viewModel.extraLetterResults.isEmpty {
+                            Text("\(viewModel.extraLetterResults.count) palabras con una ficha adicional")
+                                .font(.title3)
+                                .bold()
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                ForEach(viewModel.extraLetterResults.sorted {
+                                    spanishScrabbleOrderWithKey($0.word, $1.word, keyA: $0.extraLetter, keyB: $1.extraLetter)
+                                }) { entry in
+                                    let attributed = highlightExtraLetter(in: entry.word, extra: entry.extraLetter)
+                                    Text(attributed)
+                                        .onTapGesture {
+                                            if let url = URL(string: "https://dle.rae.es/\(entry.word)") {
+                                                selectedItem = SafariItem(url)
+                                            }
+                                        }
+                                        .padding(4)
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(6)
+                                }
                             }
                         }
-                    } else if hasSearched && viewModel.results.isEmpty {
-                        Text("0 palabras con todas las fichas")
-                            .font(.title3)
-                            .bold()
-                            .padding(.top)
                     }
-
-                    if !viewModel.extraLetterResults.isEmpty {
-                        Text("\(viewModel.extraLetterResults.count) palabras con una ficha adicional")
-                            .font(.title3)
-                            .bold()
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                            ForEach(viewModel.extraLetterResults.sorted {
-                                spanishScrabbleOrderWithKey($0.word, $1.word, keyA: $0.extraLetter, keyB: $1.extraLetter)
-                            }) { entry in
-                                let attributed = highlightExtraLetter(in: entry.word, extra: entry.extraLetter)
-                                Text(attributed)
-                                    .onTapGesture {
-                                        if let url = URL(string: "https://dle.rae.es/\(entry.word)") {
-                                            selectedItem = SafariItem(url)
+                    
+                    // Section for Shorter Words - shown when showShorterWords is ON
+                    if viewModel.showShorterWords {
+                        if !viewModel.shorterWordsResults.isEmpty {
+                            Text("\(viewModel.shorterWordsResults.count) palabras más cortas")
+                                .font(.title3)
+                                .bold()
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                ForEach(viewModel.shorterWordsResults, id: \.self) { word in // Already sorted by ViewModel
+                                    Text(word)
+                                        .onTapGesture {
+                                            if let url = URL(string: "https://dle.rae.es/\(word)") {
+                                                selectedItem = SafariItem(url)
+                                            }
                                         }
-                                    }
-                                    .padding(4)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color(.systemGray6))
-                                    .cornerRadius(6)
+                                        .padding(4)
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(6)
+                                }
                             }
+                        } else if hasSearched && viewModel.shorterWordsResults.isEmpty { // This condition is correct as per previous step
+                             Text("0 palabras más cortas")
+                                .font(.title3)
+                                .bold()
+                                .padding(.top)
                         }
                     }
                 }
