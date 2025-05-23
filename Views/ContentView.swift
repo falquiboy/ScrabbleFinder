@@ -111,26 +111,41 @@ struct ContentView: View {
                         // ViewModel already ensures wildcardResults is populated only if matches are found.
                     } else { // No wildcards
                         if viewModel.enableShorterWords {
-                            // Section for Shorter Words Results
-                            if !viewModel.shorterWordsResults.isEmpty {
-                                Text("\(viewModel.shorterWordsResults.count) palabras más cortas")
-                                    .font(.title3)
+                            // Section for Shorter Words Results - Grouped
+                            if !viewModel.groupedShorterWords.isEmpty {
+                                // Overall count for shorter words
+                                Text("Total: \(viewModel.shorterWordsResults.count) palabras más cortas")
+                                    .font(.title3) // Keep title3 for main header
                                     .bold()
-                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                                    ForEach(viewModel.shorterWordsResults, id: \.self) { word in // Already sorted by ViewModel
-                                        Text(word)
-                                            .onTapGesture {
-                                                if let url = URL(string: "https://dle.rae.es/\(word)") {
-                                                    selectedItem = SafariItem(url)
+                                    .padding(.bottom, 2) // Minor spacing adjustment
+
+                                ForEach(viewModel.groupedShorterWords) { group in
+                                    DisclosureGroup(
+                                        content: {
+                                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                                ForEach(group.words, id: \.self) { word in
+                                                    Text(word)
+                                                        .onTapGesture {
+                                                            if let url = URL(string: "https://dle.rae.es/\(word)") {
+                                                                selectedItem = SafariItem(url)
+                                                            }
+                                                        }
+                                                        .padding(4)
+                                                        .frame(maxWidth: .infinity)
+                                                        .background(Color(.systemGray6))
+                                                        .cornerRadius(6)
                                                 }
                                             }
-                                            .padding(4)
-                                            .frame(maxWidth: .infinity)
-                                            .background(Color(.systemGray6))
-                                            .cornerRadius(6)
-                                    }
+                                            .padding(.top, 8) // Padding inside disclosure group
+                                        },
+                                        label: {
+                                            Text("Palabras de \(group.length) letras (\(group.words.count) palabras)")
+                                                .font(.headline) // Headline for group titles
+                                                .foregroundColor(.primary) // Ensure label text is clearly visible
+                                        }
+                                    )
                                 }
-                            } else if hasSearched {
+                            } else if hasSearched { // This implies groupedShorterWords is empty
                                 Text("0 palabras más cortas encontradas")
                                     .font(.headline)
                                     .padding(.top)

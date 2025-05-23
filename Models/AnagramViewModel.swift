@@ -16,17 +16,24 @@ struct WildcardWord: Identifiable {
     let wildcardLetters: [Character]   // mismo orden que los “?” del query
 }
 
+struct ShorterWordGroup: Identifiable {
+    let id: Int // Using length as ID, assuming length is unique for groups
+    let length: Int
+    var words: [String] // Already sorted alphabetically
+}
+
 // MARK: – ViewModel ----------------------------------------------------------
 
 final class AnagramViewModel: ObservableObject {
 
     // Publicado a la vista
     @Published var query: String = ""
-    @Published var results: [String] = []                    // palabras exactas
-    @Published var extraLetterResults: [ExtraLetterWord] = []// +1 ficha
-    @Published var wildcardResults: [WildcardWord] = []      // con “?”
-    @Published var shorterWordsResults: [String] = []        // palabras más cortas
-    @Published var enableShorterWords: Bool = false          // habilitar búsqueda de palabras más cortas
+    @Published var results: [String] = []
+    @Published var extraLetterResults: [ExtraLetterWord] = []
+    @Published var wildcardResults: [WildcardWord] = []
+    @Published var shorterWordsResults: [String] = [] // Retained for total count and copyAllWords
+    @Published var groupedShorterWords: [ShorterWordGroup] = [] // For grouped display
+    @Published var enableShorterWords: Bool = false
 
     // Trie raíz
     private let trieRoot: TrieNode
@@ -66,6 +73,7 @@ final class AnagramViewModel: ObservableObject {
         extraLetterResults.removeAll()
         wildcardResults.removeAll()
         shorterWordsResults.removeAll()
+        groupedShorterWords.removeAll() // Clear new grouped results
 
         // --------------------------------------------------------------------
         // 1) Procesa texto del usuario → internalBuffer + wildcardCount
@@ -134,10 +142,17 @@ final class AnagramViewModel: ObservableObject {
                     // This can be refined if sorting helpers are moved/made accessible.
                     return $0 < $1 // Alfabéticamente para misma longitud
                 }
+                
+                // Transform flat shorterWordsResults to groupedShorterWords
+                let groups = Dictionary(grouping: shorterWordsResults, by: { $0.count })
+                groupedShorterWords = groups.map { ShorterWordGroup(id: $0.key, length: $0.key, words: $0.value) }
+                                            .sorted { $0.length > $1.length } // Sort groups by length descending
+
             } else {
                 // --- Calculate and populate results (exact) and extraLetterResults ---
-                // Ensure shorterWordsResults is empty
+                // Ensure shorterWordsResults and groupedShorterWords are empty
                 shorterWordsResults.removeAll()
+                groupedShorterWords.removeAll()
 
                 let alpha = alphagram(of: normalized)
                 let exactRaw = trieRoot.searchByAlphagram(alpha)
