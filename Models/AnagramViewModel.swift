@@ -26,6 +26,9 @@ final class AnagramViewModel: ObservableObject {
     @Published var extraLetterResults: [ExtraLetterWord] = []// +1 ficha
     @Published var wildcardResults: [WildcardWord] = []      // con “?”
 
+    @Published var showShorterWordsOnly: Bool = false
+    @Published var shorterWordResultsByLength: [Int: [String]] = [:]
+
     // Trie raíz
     private let trieRoot: TrieNode
 
@@ -158,6 +161,7 @@ final class AnagramViewModel: ObservableObject {
         }
 
         wildcardResults = found.sorted { $0.word < $1.word }
+        showShorterWordsOnly = false
     }
 
     // ------------------------------------------------------------------------
@@ -180,5 +184,79 @@ final class AnagramViewModel: ObservableObject {
             }
         }
         return out
+    }
+
+    func generateShorterWords() {
+        guard !query.isEmpty else { return }
+
+        shorterWordResultsByLength.removeAll()
+
+        var internalBuffer: [Character] = []
+
+        let upper = Array(query.uppercased())
+        var i = 0
+        while i < upper.count {
+            let ch = upper[i]
+            if ch == "?" { i += 1; continue }
+
+            if i + 1 < upper.count {
+                let next = upper[i + 1]
+                if ch == "C", next == "H" {
+                    internalBuffer.append("Ç"); i += 2; continue
+                }
+                if ch == "L", next == "L" {
+                    internalBuffer.append("K"); i += 2; continue
+                }
+                if ch == "R", next == "R" {
+                    internalBuffer.append("W"); i += 2; continue
+                }
+            }
+
+            if ch.isLetter {
+                internalBuffer.append(ch)
+            }
+            i += 1
+        }
+
+        let fullSet = internalBuffer
+        let fullLength = fullSet.count
+
+        guard fullLength > 2 else { return }
+
+        var seen = Set<String>()
+
+        for len in stride(from: fullLength - 1, through: 2, by: -1) {
+            let combos = combinations(of: fullSet, length: len)
+            for c in combos {
+                let alpha = alphagram(of: String(c))
+                let matches = trieRoot.searchByAlphagram(alpha)
+                for w in matches where !seen.contains(w) {
+                    seen.insert(w)
+                    let nice = denormalize(w)
+                    shorterWordResultsByLength[len, default: []].append(nice)
+                }
+            }
+        }
+    }
+
+    private func combinations(of array: [Character], length: Int) -> Set<[Character]> {
+        var results = Set<[Character]>()
+
+        func combine(_ current: [Character], _ remaining: [Character]) {
+            if current.count == length {
+                results.insert(current.sorted())
+                return
+            }
+            for i in 0..<remaining.count {
+                var newCurrent = current
+                newCurrent.append(remaining[i])
+                var newRemaining = remaining
+                newRemaining.remove(at: i)
+                combine(newCurrent, newRemaining)
+            }
+        }
+
+        combine([], array)
+        return results
     }
 }
