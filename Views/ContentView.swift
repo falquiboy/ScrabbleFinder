@@ -7,7 +7,7 @@ struct ContentView: View {
     @State private var selectedItem: SafariItem?
     @FocusState private var isQueryFocused: Bool
     @State private var hasSearched: Bool = false
-    @State private var expandedLength: Int? = nil
+    @State private var expandedLengths: Set<Int> = []
 
     /// Copies all currently displayed words (denormalized) to the clipboard, one per line.
     private func copyAllWords() {
@@ -20,7 +20,13 @@ struct ContentView: View {
     }
 
     var body: some View {
-        VStack {
+        ZStack {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isQueryFocused = false
+                }
+            VStack {
             HStack {
                 TextField("INGRESA LETRAS", text: Binding(
                     get: { viewModel.query },
@@ -33,6 +39,13 @@ struct ContentView: View {
                 .submitLabel(.search)
                 .onSubmit {
                     viewModel.searchAnagrams()
+                    hasSearched = true
+                    isQueryFocused = false  // Allow keyboard to dismiss after search
+                }
+                .onChange(of: viewModel.query) {
+                    hasSearched = false
+                    viewModel.showShorterWordsOnly = false
+                    expandedLengths.removeAll()
                 }
                 .overlay(
                     HStack {
@@ -44,6 +57,8 @@ struct ContentView: View {
                                 viewModel.extraLetterResults.removeAll()
                                 viewModel.wildcardResults.removeAll()
                                 hasSearched = false
+                                viewModel.showShorterWordsOnly = false
+                                expandedLengths.removeAll()
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(.secondary)
@@ -56,7 +71,6 @@ struct ContentView: View {
                 Button {
                     viewModel.searchAnagrams()
                     hasSearched = true
-                    isQueryFocused = false
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.title2)
@@ -74,19 +88,19 @@ struct ContentView: View {
             HStack {
                 Toggle("Mostrar palabras más cortas", isOn: $viewModel.showShorterWordsOnly)
                     .disabled(!hasSearched)
-                    .onChange(of: viewModel.showShorterWordsOnly) { enabled in
-                        if enabled {
+                    .onChange(of: viewModel.showShorterWordsOnly) { _, newValue in
+                        if newValue {
                             viewModel.generateShorterWords()
-                            expandedLength = viewModel.shorterWordResultsByLength.keys.sorted(by: >).first
+                            expandedLengths = Set(viewModel.shorterWordResultsByLength.keys)
                         } else {
-                            expandedLength = nil
+                            expandedLengths.removeAll()
                         }
                     }
                 Spacer()
             }
             .padding(.horizontal)
-            .onChange(of: viewModel.shorterWordResultsByLength) { results in
-                expandedLength = results.keys.sorted(by: >).first
+            .onChange(of: viewModel.shorterWordResultsByLength) {
+                expandedLengths = Set(viewModel.shorterWordResultsByLength.keys)
             }
 
             ScrollView {
@@ -169,14 +183,18 @@ struct ContentView: View {
                             DisclosureGroup(
                                 "\(length) letras (\(viewModel.shorterWordResultsByLength[length]?.count ?? 0))",
                                 isExpanded: Binding(
-                                    get: { expandedLength == length },
-                                    set: { newValue in
-                                        expandedLength = newValue ? length : nil
+                                    get: { expandedLengths.contains(length) },
+                                    set: { newVal in
+                                        if newVal {
+                                            expandedLengths.insert(length)
+                                        } else {
+                                            expandedLengths.remove(length)
+                                        }
                                     }
                                 )
                             ) {
                                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                                    ForEach(viewModel.shorterWordResultsByLength[length] ?? [], id: \.self) { word in
+                                    ForEach((viewModel.shorterWordResultsByLength[length] ?? []).sorted(by: spanishScrabbleOrder), id: \.self) { word in
                                         Text(word)
                                             .onTapGesture {
                                                 if let url = URL(string: "https://dle.rae.es/\(word)") {
@@ -195,6 +213,8 @@ struct ContentView: View {
                 }
                 .padding(.horizontal)
             }
+            }
+            // End of ZStack
         }
         .padding()
         .sheet(item: $selectedItem) { item in

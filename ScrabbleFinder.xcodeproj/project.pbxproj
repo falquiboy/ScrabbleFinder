@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		583CA6C42DD97076005C9429 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 583CA6C32DD97076005C9429 /* Assets.xcassets */; };
+		581ED8FD2DE17BC800D606B6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 583CA6C32DD97076005C9429 /* Assets.xcassets */; };
 		583CA6CC2DDAD90F005C9429 /* DigraphsUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583CA6CB2DDAD8E6005C9429 /* DigraphsUtils.swift */; };
 		583CA6CE2DDADA6F005C9429 /* AnagramViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583CA6CD2DDADA6F005C9429 /* AnagramViewModel.swift */; };
 		583CA6D12DDADE93005C9429 /* scrabble_words.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 583CA6D02DDADE93005C9429 /* scrabble_words.sqlite */; };
@@ -235,8 +235,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				583CA6C42DD97076005C9429 /* Assets.xcassets in Resources */,
 				584D6D462DDEA438007E40F3 /* trie.bin in Resources */,
+				581ED8FD2DE17BC800D606B6 /* Assets.xcassets in Resources */,
 				583CA6D12DDADE93005C9429 /* scrabble_words.sqlite in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
