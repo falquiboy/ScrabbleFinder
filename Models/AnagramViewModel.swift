@@ -1,5 +1,6 @@
 import Foundation
 import TrieKit
+import SQLite3
 
 // MARK: – Model helpers ------------------------------------------------------
 
@@ -30,7 +31,10 @@ final class AnagramViewModel: ObservableObject {
     @Published var shorterWordResultsByLength: [Int: [String]] = [:]
 
     // Trie raíz
-    private let trieRoot: TrieNode
+    var trieRoot: TrieNode? = nil
+    var sqliteDB: OpaquePointer? = nil
+    
+    @Published var trieReady: Bool = false
 
     // Conversión de dígrafos ⇆ forma interna
     private let digraphsToInternal: [String: Character] = ["CH":"Ç", "LL":"K", "RR":"W"]
@@ -46,14 +50,23 @@ final class AnagramViewModel: ObservableObject {
     // Init – carga trie.bin
     // ------------------------------------------------------------------------
     init() {
-        guard let url  = Bundle.main.url(forResource: "trie", withExtension: "bin"),
-              let data = try? Data(contentsOf: url) else {
-            fatalError("❌ No se encontró trie.bin en el bundle")
-        }
-        do {
-            trieRoot = try PropertyListDecoder().decode(TrieNode.self, from: data)
-        } catch {
-            fatalError("❌ Error decodificando trie.bin: \(error)")
+        // 1) Open SQLite for immediate fallback search
+        openSQLite()
+        
+        // 2) Load trie in background
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let url = Bundle.main.url(forResource: "trie", withExtension: "bin"),
+                  let data = try? Data(contentsOf: url),
+                  let decoded = try? PropertyListDecoder().decode(TrieNode.self, from: data) else {
+                DispatchQueue.main.async {
+                    print("❌ Error al cargar trie.bin")
+                }
+                return
+            }
+            DispatchQueue.main.async {
+                self.trieRoot = decoded
+                self.trieReady = true
+            }
         }
     }
 
@@ -66,6 +79,13 @@ final class AnagramViewModel: ObservableObject {
         results.removeAll()
         extraLetterResults.removeAll()
         wildcardResults.removeAll()
+
+        // If trie not ready yet, use SQLite fallback
+        if trieRoot == nil {
+            self.results = fetchFromSQLite(query: query)
+            return
+        }
+        let trie = trieRoot!
 
         // --------------------------------------------------------------------
         // 1) Procesa texto del usuario → internalBuffer + wildcardCount
@@ -113,7 +133,7 @@ final class AnagramViewModel: ObservableObject {
 
             // 2-a  exactas
             let alpha      = alphagram(of: normalized)
-            let exactRaw   = trieRoot.searchByAlphagram(alpha)
+            let exactRaw   = trie.searchByAlphagram(alpha)
             results        = exactRaw.map { denormalize($0) }
 
             // 2-b  +1 ficha
@@ -121,7 +141,7 @@ final class AnagramViewModel: ObservableObject {
             let letters = "AÇBCDEFGHIJKLMNOPQRSTUVWXYZÑ"
             for letter in letters {
                 let extAlpha = alphagram(of: normalized + String(letter))
-                let matches  = trieRoot.searchByAlphagram(extAlpha)
+                let matches  = trie.searchByAlphagram(extAlpha)
                 for w in matches where !exactRaw.contains(w) {
                     extras.append(ExtraLetterWord(word: denormalize(w),
                                                  extraLetter: letter))
@@ -140,7 +160,7 @@ final class AnagramViewModel: ObservableObject {
 
         func process(_ candidate: String, _ subs: [Character]) {
             let alpha   = alphagram(of: candidate)
-            let matches = trieRoot.searchByAlphagram(alpha)
+            let matches = trie.searchByAlphagram(alpha)
             for w in matches where !seen.contains(w) {
                 seen.insert(w)
                 found.append(WildcardWord(word: denormalize(w),
@@ -161,7 +181,64 @@ final class AnagramViewModel: ObservableObject {
         }
 
         wildcardResults = found.sorted { $0.word < $1.word }
-        showShorterWordsOnly = false
+    }
+
+    // ------------------------------------------------------------------------
+    /// Convierte CH/LL/RR a Ç/K/W, filtra sólo letras y **devuelve mayúsculas internas**.
+    private func normalizeInternal(_ word: String) -> String {
+        var buffer: [Character] = []
+        let upper = Array(word.uppercased())
+        var i = 0
+        while i < upper.count {
+            let ch = upper[i]
+            if i + 1 < upper.count {
+                let next = upper[i + 1]
+                if ch == "C", next == "H" {
+                    buffer.append("Ç"); i += 2; continue
+                }
+                if ch == "L", next == "L" {
+                    buffer.append("K"); i += 2; continue
+                }
+                if ch == "R", next == "R" {
+                    buffer.append("W"); i += 2; continue
+                }
+            }
+            if ch.isLetter { buffer.append(ch) }
+            i += 1
+        }
+        return String(buffer)
+    }
+    // ------------------------------------------------------------------------
+    // MARK: – Public validator
+    // ------------------------------------------------------------------------
+    /// Retorna `true` si la palabra está en el lexicón.
+    func isValid(_ word: String) -> Bool {
+        let norm = normalizeInternal(word)
+        guard !norm.isEmpty else { return false }
+
+        // Si el trie ya está listo, úsalo porque es más rápido
+        if let trie = trieRoot {
+            let alpha = alphagram(of: norm)
+            return trie.searchByAlphagram(alpha).contains(norm)
+        }
+
+        // Fallback: consulta en SQLite
+        let alpha = alphagram(of: norm)
+        return fetchFromSQLiteHasAlpha(alpha)
+    }
+
+    /// Devuelve `true` si existe algún registro con ese alfagrama en SQLite.
+    private func fetchFromSQLiteHasAlpha(_ alpha: String) -> Bool {
+        guard let db = sqliteDB else { return false }
+        let sql = "SELECT 1 FROM words WHERE alphagram = ? LIMIT 1"
+        var stmt: OpaquePointer? = nil
+        var exists = false
+        if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
+            sqlite3_bind_text(stmt, 1, alpha, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+            exists = sqlite3_step(stmt) == SQLITE_ROW
+        }
+        sqlite3_finalize(stmt)
+        return exists
     }
 
     // ------------------------------------------------------------------------
@@ -229,7 +306,7 @@ final class AnagramViewModel: ObservableObject {
             let combos = combinations(of: fullSet, length: len)
             for c in combos {
                 let alpha = alphagram(of: String(c))
-                let matches = trieRoot.searchByAlphagram(alpha)
+                let matches = trieRoot?.searchByAlphagram(alpha) ?? []
                 for w in matches where !seen.contains(w) {
                     seen.insert(w)
                     let nice = denormalize(w)
@@ -258,5 +335,53 @@ final class AnagramViewModel: ObservableObject {
 
         combine([], array)
         return results
+    }
+    
+    private func openSQLite() {
+        guard let path = Bundle.main.path(forResource: "scrabble_words", ofType: "sqlite") else {
+            print("⚠️ scrabble_words.sqlite no encontrado en bundle")
+            return
+        }
+        if sqlite3_open(path, &sqliteDB) != SQLITE_OK {
+            print("❌ SQLite open error: \(String(cString: sqlite3_errmsg(sqliteDB)))")
+        } else {
+            print("✅ SQLite database opened at path: \(path)")
+            var tableStmt: OpaquePointer? = nil
+            if sqlite3_prepare_v2(sqliteDB, "SELECT name FROM sqlite_master WHERE type='table';", -1, &tableStmt, nil) == SQLITE_OK {
+                while sqlite3_step(tableStmt) == SQLITE_ROW {
+                    if let cName = sqlite3_column_text(tableStmt, 0) {
+                        print("📋 SQLite table: \(String(cString: cName))")
+                    }
+                }
+                sqlite3_finalize(tableStmt)
+            }
+        }
+    }
+    
+    private func fetchFromSQLite(query: String) -> [String] {
+        guard let db = sqliteDB else { return [] }
+        // Normalize input using internal normalization (digraphs, letters, uppercase)
+        let normalized = normalizeInternal(query)
+        let alpha = alphagram(of: normalized)
+        
+        print("🔍 SQLite fallback search alpha: \(alpha)")
+        
+        let sql = "SELECT word FROM words WHERE alphagram = ?"
+        var stmt: OpaquePointer? = nil
+        var words: [String] = []
+        
+        if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
+            sqlite3_bind_text(stmt, 1, alpha, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                if let cString = sqlite3_column_text(stmt, 0) {
+                    words.append(String(cString: cString))
+                }
+            }
+        }
+        sqlite3_finalize(stmt)
+        
+        print("🔎 SQLite found \(words.count) words for alpha \(alpha)")
+        
+        return words
     }
 }

@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		581ED8FD2DE17BC800D606B6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 583CA6C32DD97076005C9429 /* Assets.xcassets */; };
+		581ED8FF2DE2D0FE00D606B6 /* LexiconJudgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 581ED8FE2DE2D0E700D606B6 /* LexiconJudgeView.swift */; };
+		581ED9012DE2D49700D606B6 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 581ED9002DE2D45D00D606B6 /* RootView.swift */; };
+		581ED9032DE2FC9E00D606B6 /* PatternViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 581ED9022DE2FC8C00D606B6 /* PatternViewModel.swift */; };
+		581ED9052DE2FDB000D606B6 /* PatternFinderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 581ED9042DE2FDA000D606B6 /* PatternFinderView.swift */; };
 		583CA6CC2DDAD90F005C9429 /* DigraphsUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583CA6CB2DDAD8E6005C9429 /* DigraphsUtils.swift */; };
 		583CA6CE2DDADA6F005C9429 /* AnagramViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583CA6CD2DDADA6F005C9429 /* AnagramViewModel.swift */; };
 		583CA6D12DDADE93005C9429 /* scrabble_words.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 583CA6D02DDADE93005C9429 /* scrabble_words.sqlite */; };
@@ -42,6 +46,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		581ED8FE2DE2D0E700D606B6 /* LexiconJudgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LexiconJudgeView.swift; sourceTree = "<group>"; };
+		581ED9002DE2D45D00D606B6 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		581ED9022DE2FC8C00D606B6 /* PatternViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternViewModel.swift; sourceTree = "<group>"; };
+		581ED9042DE2FDA000D606B6 /* PatternFinderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternFinderView.swift; sourceTree = "<group>"; };
 		583CA6C32DD97076005C9429 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		583CA6CB2DDAD8E6005C9429 /* DigraphsUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigraphsUtils.swift; sourceTree = "<group>"; };
 		583CA6CD2DDADA6F005C9429 /* AnagramViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnagramViewModel.swift; sourceTree = "<group>"; };
@@ -101,8 +109,9 @@
 		583CA6CA2DDAD8B8005C9429 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				583CA6CD2DDADA6F005C9429 /* AnagramViewModel.swift */,
 				583CA6CB2DDAD8E6005C9429 /* DigraphsUtils.swift */,
+				583CA6CD2DDADA6F005C9429 /* AnagramViewModel.swift */,
+				581ED9022DE2FC8C00D606B6 /* PatternViewModel.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -119,6 +128,9 @@
 		583CA6D22DDAE52B005C9429 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				581ED9042DE2FDA000D606B6 /* PatternFinderView.swift */,
+				581ED9002DE2D45D00D606B6 /* RootView.swift */,
+				581ED8FE2DE2D0E700D606B6 /* LexiconJudgeView.swift */,
 				583CA6D42DDAE822005C9429 /* ContentView.swift */,
 			);
 			path = Views;
@@ -256,8 +268,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				583CA6CE2DDADA6F005C9429 /* AnagramViewModel.swift in Sources */,
+				581ED9012DE2D49700D606B6 /* RootView.swift in Sources */,
+				581ED9052DE2FDB000D606B6 /* PatternFinderView.swift in Sources */,
 				583CA6CC2DDAD90F005C9429 /* DigraphsUtils.swift in Sources */,
 				583CA6D52DDAE829005C9429 /* ContentView.swift in Sources */,
+				581ED8FF2DE2D0FE00D606B6 /* LexiconJudgeView.swift in Sources */,
+				581ED9032DE2FC9E00D606B6 /* PatternViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

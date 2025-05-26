@@ -17,6 +17,29 @@ public class TrieNode: Codable {
         return results
     }
 
+    /// Returns all words stored in this node and its descendants.
+    public func allWords() -> [String] {
+        var results: [String] = []
+        // Include words at this node
+        if let list = self.words {
+            results.append(contentsOf: list)
+        }
+        // Recurse into children
+        for child in children.values {
+            results.append(contentsOf: child.allWords())
+        }
+        return results
+    }
+
+    /// Search the trie for words matching the given regular expression.
+    public func searchByPattern(_ regex: NSRegularExpression) -> [String] {
+        // Collect all words and filter by regex
+        return allWords().filter { word in
+            let range = NSRange(location: 0, length: word.utf16.count)
+            return regex.firstMatch(in: word, options: [], range: range) != nil
+        }
+    }
+
     private func search(_ remaining: String, path: String, node: TrieNode, results: inout [String]) {
         if remaining.isEmpty {
             if let list = node.words {
@@ -33,4 +56,3 @@ public class TrieNode: Codable {
         }
     }
 }
-

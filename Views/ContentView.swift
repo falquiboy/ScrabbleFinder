@@ -20,13 +20,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    isQueryFocused = false
-                }
-            VStack {
+        VStack {
             HStack {
                 TextField("INGRESA LETRAS", text: Binding(
                     get: { viewModel.query },
@@ -213,9 +207,7 @@ struct ContentView: View {
                 }
                 .padding(.horizontal)
             }
-            }
-            // End of ZStack
-        }
+        } // end VStack
         .padding()
         .sheet(item: $selectedItem) { item in
             SafariView(url: item.url)
