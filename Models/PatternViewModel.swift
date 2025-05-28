@@ -10,10 +10,17 @@ import SQLite3
 import TrieKit
 import Combine
 
+// MARK: - Pattern match with filled positions
+struct PatternSearchResult {
+    let word: String
+    let filledPositions: [Int]
+    let dashRanges: [(start: Int, end: Int)]
+}
+
 final class PatternViewModel: ObservableObject {
     @Published var query: String = ""
     @Published var showLongWords: Bool = false        // > 8 letras
-    @Published var resultsByLength: [Int: [String]] = [:]
+    @Published var resultsByLength: [Int: [PatternSearchResult]] = [:]
 
     private var trie: TrieNode?            // opcional
     private var sqliteDB: OpaquePointer?   // reusar método openSQLite()
@@ -82,10 +89,15 @@ final class PatternViewModel: ObservableObject {
 
         // 5. Agrupar y ordenar
         for w in final {
-            resultsByLength[w.count, default: []].append(w)
+            let result = PatternSearchResult(
+                word: w,
+                filledPositions: request.filledPositions,
+                dashRanges: request.dashRanges
+            )
+            resultsByLength[w.count, default: []].append(result)
         }
         resultsByLength.keys.forEach {
-            resultsByLength[$0]?.sort()          // alfabético asc
+            resultsByLength[$0]?.sort { $0.word < $1.word }
         }
         
         // Debug: log which lengths were found
@@ -167,10 +179,38 @@ private struct ParsedPattern {
     let length: Int?          // nil = cualquier longitud
     let rack: [Character]?    // letras del atril (opcional)
     let mandatoryLetters: [Character]
+    let filledPositions: [Int]
+    let dashRanges: [(start: Int, end: Int)]
 
     init?(_ raw: String) {
-        // 0) Separar rack tras la coma ――――――――――――――――――――――――――――――――
         let parts = raw.uppercased().split(separator: ",", maxSplits: 1).map(String.init)
+        // Record which indices came from '*' or '-'
+        var filled: [Int] = []
+        for (i, ch) in raw.enumerated() {
+            if ch == "*" || ch == "-" {
+                filled.append(i)
+            }
+        }
+        filledPositions = filled
+
+        // Compute dash ranges in the normalized pattern
+        let coreRaw = parts[0]
+        let hasLeadingDash = coreRaw.hasPrefix("-")
+        let hasTrailingDash = coreRaw.hasSuffix("-")
+        var ranges: [(Int, Int)] = []
+        if hasLeadingDash && hasTrailingDash {
+            ranges = [(0, -1)]
+        } else if hasLeadingDash {
+            let normalized = normalize(coreRaw)
+            let firstFixed = normalized.firstIndex(where: { $0 != "-" && $0 != "*" })?.utf16Offset(in: normalized) ?? normalized.count
+            ranges = [(0, firstFixed)]
+        } else if hasTrailingDash {
+            let normalized = normalize(coreRaw)
+            let lastFixed = normalized.lastIndex(where: { $0 != "-" && $0 != "*" })?.utf16Offset(in: normalized) ?? -1
+            ranges = [(lastFixed + 1, normalized.count)]
+        }
+        dashRanges = ranges
+
         var core = parts[0]
         // Normalize digraphs in the pattern
         core = normalize(core)
