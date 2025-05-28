@@ -5,6 +5,7 @@ struct RootView: View {
     // 1️⃣ ViewModel compartido para todas las pantallas
     @StateObject private var anagramVM: AnagramViewModel
     @StateObject private var patternVM: PatternViewModel
+    @State private var selectedTab = 0
 
     init() {
         let anagram = AnagramViewModel()
@@ -17,13 +18,14 @@ struct RootView: View {
     }
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             // Pestaña 1: Anagramas
             ContentView()
                 .environmentObject(anagramVM)
                 .tabItem {
                     Label("Anagramas", systemImage: "text.magnifyingglass")
                 }
+                .tag(0)
 
             // Pestaña 2: Validador de léxico
             LexiconJudgeView()
@@ -31,14 +33,20 @@ struct RootView: View {
                 .tabItem {
                     Label("Validador", systemImage: "checkmark.shield")
                 }
+                .tag(1)
+            
             PatternFinderView()
                 .environmentObject(patternVM)
                 .environmentObject(anagramVM)
                 .tabItem {
                     Label("Patrones", systemImage: "text.redaction")
                 }
+                .tag(2)
 
             // (Opcional) Pestaña 3: Listas, etc.
+        }
+        .onChange(of: selectedTab) { _ in
+            UIApplication.shared.dismissKeyboard()
         }
     }
 }

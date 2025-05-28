@@ -70,7 +70,7 @@ final class PatternViewModel: ObservableObject {
         let filtered: [String]
         if let rackChars = request.rack {
             // Internal rack letters
-            let normRack = rackChars.compactMap { normalize(String($0)).first }
+            let normRack = Array(normalize(String(rackChars)))
             // Combine rack + mandatory pattern letters (they're fixed positions)
             let bag = normRack + request.mandatoryLetters
             filtered = candidates.filter { fitsRack($0, rack: bag) }

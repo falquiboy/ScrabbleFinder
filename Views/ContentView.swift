@@ -34,7 +34,10 @@ struct ContentView: View {
                 .onSubmit {
                     viewModel.searchAnagrams()
                     hasSearched = true
-                    isQueryFocused = false  // Allow keyboard to dismiss after search
+                    isQueryFocused = false
+                    #if canImport(UIKit)
+                    UIApplication.shared.dismissKeyboard()
+                    #endif
                 }
                 .onChange(of: viewModel.query) {
                     hasSearched = false
@@ -65,6 +68,10 @@ struct ContentView: View {
                 Button {
                     viewModel.searchAnagrams()
                     hasSearched = true
+                    isQueryFocused = false
+                    #if canImport(UIKit)
+                    UIApplication.shared.dismissKeyboard()
+                    #endif
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.title2)
@@ -209,6 +216,11 @@ struct ContentView: View {
             }
         } // end VStack
         .padding()
+        .onTapGesture {
+            #if canImport(UIKit)
+            UIApplication.shared.dismissKeyboard()
+            #endif
+        }
         .sheet(item: $selectedItem) { item in
             SafariView(url: item.url)
                 .presentationDetents([.medium, .large])

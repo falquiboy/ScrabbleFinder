@@ -96,8 +96,8 @@
 			isa = PBXGroup;
 			children = (
 				583CA6BE2DD97075005C9429 /* App */,
-				583CA6D22DDAE52B005C9429 /* Views */,
 				583CA6CA2DDAD8B8005C9429 /* Models */,
+				583CA6D22DDAE52B005C9429 /* Views */,
 				583CA6CF2DDADE68005C9429 /* Resources */,
 				583CA6D72DDB6224005C9429 /* Assets */,
 				58F28F8C2DDCF1AE003813CC /* ScrabbleFinder.app */,

@@ -56,49 +56,64 @@ private func parsePattern(_ pat: String) -> [PatternUnit] {
 }
 
 private func highlightPatternFilled(_ displayWord: String, _ pattern: String) -> AttributedString {
-  // Strip off any rack letters after comma so we only parse the pattern itself
-  let rawPattern = pattern.split(separator: ",", maxSplits: 1, omittingEmptySubsequences: false)
-                       .first.map(String.init) ?? pattern
-  let units = parsePattern(rawPattern)
-  var attributed = AttributedString(displayWord)
-  let displayCount = attributed.characters.count
-  let fixedAndWildcardCount = units.reduce(0) { total, unit in
-    switch unit {
-    case .fixed(let txt):
-      return total + txt.count
-    case .wildcard:
-      return total + 1
-    case .hyphen:
-      return total
+    let rawPattern = pattern.split(separator: ",", maxSplits: 1, omittingEmptySubsequences: false)
+                         .first.map(String.init) ?? pattern
+    let units = parsePattern(rawPattern)
+    var attributed = AttributedString(displayWord)
+    
+    // Usar splitIntoUnits para manejar dígrafos correctamente
+    let wordUnits = splitIntoUnits(displayWord)
+    let fixedAndWildcardCount = units.reduce(0) { total, unit in
+        switch unit {
+        case .fixed(let txt): return total + splitIntoUnits(txt).count
+        case .wildcard: return total + 1
+        case .hyphen: return total
+        }
     }
-  }
-  let fillLength = max(0, displayCount - fixedAndWildcardCount)
-  var cursor = 0
-  for unit in units {
-    switch unit {
-    case .fixed(let txt):
-      cursor += txt.count
-
-    case .wildcard:
-      guard cursor < attributed.characters.count else { continue }
-      let start = attributed.characters.index(attributed.startIndex, offsetBy: cursor)
-      let end = attributed.characters.index(start, offsetBy: 1)
-      let range = start..<end
-      attributed[range].foregroundColor = Color.red
-      attributed[range].font = .title3.bold()
-      cursor += 1
-
-    case .hyphen:
-      guard fillLength > 0 else { continue }
-      let start = attributed.characters.index(attributed.startIndex, offsetBy: cursor)
-      let end = attributed.characters.index(start, offsetBy: fillLength)
-      let range = start..<end
-      attributed[range].foregroundColor = Color.blue
-      attributed[range].font = .title3.bold()
-      cursor += fillLength
+    let fillLength = max(0, wordUnits.count - fixedAndWildcardCount)
+    
+    var unitIndex = 0
+    var charPosition = 0
+    
+    for unit in units {
+        switch unit {
+        case .fixed(let txt):
+            let fixedUnits = splitIntoUnits(txt)
+            for _ in fixedUnits {
+                if unitIndex < wordUnits.count {
+                    charPosition += wordUnits[unitIndex].count
+                    unitIndex += 1
+                }
+            }
+            
+        case .wildcard:
+            if unitIndex < wordUnits.count {
+                let wildUnit = wordUnits[unitIndex]
+                let startPos = displayWord.index(displayWord.startIndex, offsetBy: charPosition)
+                let endPos = displayWord.index(startPos, offsetBy: wildUnit.count)
+                let range = AttributedString.Index(startPos, within: attributed)!..<AttributedString.Index(endPos, within: attributed)!
+                attributed[range].foregroundColor = Color.red
+                attributed[range].font = .title3.bold()
+                charPosition += wildUnit.count
+                unitIndex += 1
+            }
+            
+        case .hyphen:
+            for _ in 0..<fillLength {
+                if unitIndex < wordUnits.count {
+                    let fillUnit = wordUnits[unitIndex]
+                    let startPos = displayWord.index(displayWord.startIndex, offsetBy: charPosition)
+                    let endPos = displayWord.index(startPos, offsetBy: fillUnit.count)
+                    let range = AttributedString.Index(startPos, within: attributed)!..<AttributedString.Index(endPos, within: attributed)!
+                    attributed[range].foregroundColor = Color.blue
+                    attributed[range].font = .title3.bold()
+                    charPosition += fillUnit.count
+                    unitIndex += 1
+                }
+            }
+        }
     }
-  }
-  return attributed
+    return attributed
 }
 
 struct PatternFinderView: View {
@@ -136,8 +151,10 @@ struct PatternFinderView: View {
                 .onSubmit {
                     patternVM.query = pattern
                     patternVM.search()
-                    UIApplication.shared.dismissKeyboard()
                     isPatternFocused = false
+                    #if canImport(UIKit)
+                    UIApplication.shared.dismissKeyboard()
+                    #endif
                 }
                 .overlay(
                     HStack {
@@ -161,6 +178,10 @@ struct PatternFinderView: View {
                 Button {
                     patternVM.query = pattern
                     patternVM.search()
+                    isPatternFocused = false
+                    #if canImport(UIKit)
+                    UIApplication.shared.dismissKeyboard()
+                    #endif
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.title2)
@@ -232,7 +253,11 @@ struct PatternFinderView: View {
                     .presentationDetents([.medium, .large])
             }
         }
-        .onAppear { isPatternFocused = true }
+        .onTapGesture {
+            #if canImport(UIKit)
+            UIApplication.shared.dismissKeyboard()
+            #endif
+        }
         .padding()
         .onAppear {
             expandedLengths = Set(patternVM.resultsByLength.keys)

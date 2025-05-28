@@ -33,7 +33,13 @@ struct LexiconJudgeView: View {
                 .font(.title2)
                 .focused($isInputFocused)
                 .submitLabel(.go)
-                .onSubmit(validate)
+                .onSubmit {
+                    validate()
+                    isInputFocused = false
+                    #if canImport(UIKit)
+                    UIApplication.shared.dismissKeyboard()
+                    #endif
+                }
                 .overlay(
                     HStack {
                         Spacer()
@@ -50,8 +56,14 @@ struct LexiconJudgeView: View {
                     }
                 )
 
-                Button("Validar", action: validate)
-                    .buttonStyle(.borderedProminent)
+                Button("Validar") {
+                    validate()
+                    isInputFocused = false
+                    #if canImport(UIKit)
+                    UIApplication.shared.dismissKeyboard()
+                    #endif
+                }
+                .buttonStyle(.borderedProminent)
 
                 if !results.isEmpty {
                     let allValid = results.allSatisfy { $0.valid }
@@ -75,6 +87,11 @@ struct LexiconJudgeView: View {
             .padding(.top, 32)
             .frame(maxHeight: .infinity, alignment: .top)
             .navigationBarHidden(true)
+            .onTapGesture {
+                #if canImport(UIKit)
+                UIApplication.shared.dismissKeyboard()
+                #endif
+            }
         }
     }
 
