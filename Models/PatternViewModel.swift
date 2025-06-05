@@ -63,8 +63,8 @@ final class PatternViewModel: ObservableObject {
         print("🧠 Usando TRIE para búsqueda de patrón.")
 
         // Normalize pattern and rack for trie search
-        let normalizedPattern = normalize(request.corePattern) // Use the core pattern before regex conversion
-        var normalizedRack = request.rack.map { Array(normalize(String($0))) } ?? []
+ let normalizedPattern = normalize(parts[0]) // Use the initial pattern part before any transformations
+ var normalizedRack = request.rack.map { Array(normalize(String($0))) } ?? []
 
         let matchedWordsInternal = trie!.searchWithWildcards(pattern: normalizedPattern, patternIndex: 0, rack: &normalizedRack, currentNode: trie!, wildcardsUsed: 0)
 
