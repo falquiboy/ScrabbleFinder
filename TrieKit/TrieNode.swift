@@ -55,4 +55,51 @@ public class TrieNode: Codable {
             search(rest, path: path + nextChar, node: child, results: &results)
         }
     }
+
+    /// Searches the trie for words matching a pattern with wildcards and rack constraints.
+    /// - Parameters:
+    ///   - pattern: The normalized pattern string (using internal characters like Ç, K, W).
+    ///   - patternIndex: The current index in the pattern string.
+    ///   - rack: A mutable array of remaining rack characters (in internal character format).
+    ///   - node: The current trie node.
+    ///   - wildcardsUsed: The number of wildcards ('?') used so far.
+    /// - Returns: An array of matching words (in internal character format).
+    public func searchWithWildcards(pattern: String, patternIndex: Int, rack: inout [Character], node: TrieNode, wildcardsUsed: Int) -> [String] {
+        // Base case: If we've reached the end of the pattern
+        if patternIndex == pattern.count {
+            return node.words ?? [] // Return words at this node if any
+        }
+
+        var results: [String] = []
+        let patternChar = pattern[pattern.index(pattern.startIndex, offsetBy: patternIndex)]
+
+        // Handle wildcard '?'
+        if patternChar == "?" {
+            // Iterate through all possible internal characters (a-z, Ç, K, W)
+            let possibleChars = "ABCÇDEFGHIJKLMNOPQRSTUVWXYZÑKW" // Include your custom digraph chars
+            for char in possibleChars {
+                // Check if the character is in the remaining rack
+                if let rackIndex = rack.firstIndex(of: char) {
+                    // Use character from rack
+                    var newRack = rack
+                    newRack.remove(at: rackIndex)
+                    if let childNode = node.children[String(char)] {
+                        results.append(contentsOf: searchWithWildcards(pattern: pattern, patternIndex: patternIndex + 1, rack: &newRack, node: childNode, wildcardsUsed: wildcardsUsed))
+                    }
+                } else if wildcardsUsed < 2 {
+                    // Use a blank tile for the wildcard
+                    if let childNode = node.children[String(char)] {
+                        results.append(contentsOf: searchWithWildcards(pattern: pattern, patternIndex: patternIndex + 1, rack: &rack, node: childNode, wildcardsUsed: wildcardsUsed + 1))
+                    }
+                }
+            }
+        } else {
+            // Handle regular character
+            if let childNode = node.children[String(patternChar)] {
+                results.append(contentsOf: searchWithWildcards(pattern: pattern, patternIndex: patternIndex + 1, rack: &rack, node: childNode, wildcardsUsed: wildcardsUsed))
+            }
+        }
+
+        return results
+    }
 }
