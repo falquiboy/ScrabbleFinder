@@ -59,12 +59,16 @@ final class PatternViewModel: ObservableObject {
         // 1. Parseo
         guard let request = ParsedPattern(query) else { return }
 
-        // 2. Obtener universo de palabras usando TRIE
+        // 2. Obtener palabras coincidentes usando TRIE con comodines y atril
         print("🧠 Usando TRIE para búsqueda de patrón.")
-        let candidates = collectFromTrie(regex: request.regex)
-        // Debug: count of 5-letter candidates
-        let count5 = candidates.filter { $0.count == 5 }.count
-        print("🔍 Candidatas de longitud 5: \(count5)")
+
+        // Normalize pattern and rack for trie search
+        let normalizedPattern = normalize(request.corePattern) // Use the core pattern before regex conversion
+        var normalizedRack = request.rack.map { Array(normalize(String($0))) } ?? []
+
+        let matchedWordsInternal = trie!.searchWithWildcards(pattern: normalizedPattern, patternIndex: 0, rack: &normalizedRack, currentNode: trie!, wildcardsUsed: 0)
+
+        let candidates = matchedWordsInternal.map { denormalize($0) } // Denormalize results
 
         // 3. Filtrado por rack si existe
         let filtered: [String]
@@ -72,7 +76,8 @@ final class PatternViewModel: ObservableObject {
             // Internal rack letters
             let normRack = Array(normalize(String(rackChars)))
             // Combine rack + mandatory pattern letters (they're fixed positions)
-            let bag = normRack + request.mandatoryLetters
+            // Note: Mandatory letters from the pattern are already handled by the trie search
+            let bag = normRack // The rack is already used for filtering during trie search, so just use the normalized rack
             filtered = candidates.filter { fitsRack($0, rack: bag) }
         } else {
             filtered = candidates
@@ -82,11 +87,7 @@ final class PatternViewModel: ObservableObject {
         let final = request.length != nil
           ? filtered.filter { $0.count == request.length! }
           : filtered
-
-        // Debug: total de 5-letter finales
-        let final5 = final.filter { $0.count == 5 }.count
-        print("🔍 Finales de longitud 5: \(final5)")
-
+          
         // 5. Agrupar y ordenar
         for w in final {
             let result = PatternSearchResult(
