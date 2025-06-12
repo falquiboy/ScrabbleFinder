@@ -19,6 +19,7 @@
 		584D6D462DDEA438007E40F3 /* trie.bin in Resources */ = {isa = PBXBuildFile; fileRef = 584D6D452DDEA438007E40F3 /* trie.bin */; };
 		58F28F9E2DDE4875003813CC /* TrieKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58F28F962DDE4875003813CC /* TrieKit.framework */; };
 		58F28F9F2DDE4875003813CC /* TrieKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 58F28F962DDE4875003813CC /* TrieKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DCA61D2C2DF2521E00EBF005 /* shared-types.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCA61D2B2DF2521E00EBF005 /* shared-types.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,6 +59,7 @@
 		584D6D452DDEA438007E40F3 /* trie.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = trie.bin; sourceTree = "<group>"; };
 		58F28F8C2DDCF1AE003813CC /* ScrabbleFinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScrabbleFinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58F28F962DDE4875003813CC /* TrieKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TrieKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		DCA61D2B2DF2521E00EBF005 /* shared-types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "shared-types.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -112,6 +114,7 @@
 				583CA6CB2DDAD8E6005C9429 /* DigraphsUtils.swift */,
 				583CA6CD2DDADA6F005C9429 /* AnagramViewModel.swift */,
 				581ED9022DE2FC8C00D606B6 /* PatternViewModel.swift */,
+				DCA61D2B2DF2521E00EBF005 /* shared-types.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -267,6 +270,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DCA61D2C2DF2521E00EBF005 /* shared-types.swift in Sources */,
 				583CA6CE2DDADA6F005C9429 /* AnagramViewModel.swift in Sources */,
 				581ED9012DE2D49700D606B6 /* RootView.swift in Sources */,
 				581ED9052DE2FDB000D606B6 /* PatternFinderView.swift in Sources */,

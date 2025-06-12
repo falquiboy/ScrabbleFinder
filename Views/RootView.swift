@@ -45,7 +45,7 @@ struct RootView: View {
 
             // (Opcional) Pestaña 3: Listas, etc.
         }
-        .onChange(of: selectedTab) { _ in
+        .onChange(of: selectedTab) {
             UIApplication.shared.dismissKeyboard()
         }
     }
