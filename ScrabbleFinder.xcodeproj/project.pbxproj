@@ -19,6 +19,11 @@
 		584D6D462DDEA438007E40F3 /* trie.bin in Resources */ = {isa = PBXBuildFile; fileRef = 584D6D452DDEA438007E40F3 /* trie.bin */; };
 		58F28F9E2DDE4875003813CC /* TrieKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58F28F962DDE4875003813CC /* TrieKit.framework */; };
 		58F28F9F2DDE4875003813CC /* TrieKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 58F28F962DDE4875003813CC /* TrieKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DC46155F2DFF8B4000EE940A /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC46155C2DFF8B4000EE940A /* DataManager.swift */; };
+		DC4615602DFF8B4000EE940A /* UnifiedSearchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC46155E2DFF8B4000EE940A /* UnifiedSearchModel.swift */; };
+		DC4615612DFF8B4000EE940A /* SpanishUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC46155D2DFF8B4000EE940A /* SpanishUtils.swift */; };
+		DC4615632DFF8B5300EE940A /* UnifiedSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC4615622DFF8B5300EE940A /* UnifiedSearchView.swift */; };
+		DC4615652DFF9ABA00EE940A /* scrabble_hooks.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = DC4615642DFF9ABA00EE940A /* scrabble_hooks.sqlite */; };
 		DCA61D2C2DF2521E00EBF005 /* shared-types.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCA61D2B2DF2521E00EBF005 /* shared-types.swift */; };
 /* End PBXBuildFile section */
 
@@ -59,6 +64,11 @@
 		584D6D452DDEA438007E40F3 /* trie.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = trie.bin; sourceTree = "<group>"; };
 		58F28F8C2DDCF1AE003813CC /* ScrabbleFinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScrabbleFinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58F28F962DDE4875003813CC /* TrieKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TrieKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		DC46155C2DFF8B4000EE940A /* DataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataManager.swift; sourceTree = "<group>"; };
+		DC46155D2DFF8B4000EE940A /* SpanishUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanishUtils.swift; sourceTree = "<group>"; };
+		DC46155E2DFF8B4000EE940A /* UnifiedSearchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedSearchModel.swift; sourceTree = "<group>"; };
+		DC4615622DFF8B5300EE940A /* UnifiedSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedSearchView.swift; sourceTree = "<group>"; };
+		DC4615642DFF9ABA00EE940A /* scrabble_hooks.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = scrabble_hooks.sqlite; sourceTree = "<group>"; };
 		DCA61D2B2DF2521E00EBF005 /* shared-types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "shared-types.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -111,6 +121,9 @@
 		583CA6CA2DDAD8B8005C9429 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				DC46155C2DFF8B4000EE940A /* DataManager.swift */,
+				DC46155D2DFF8B4000EE940A /* SpanishUtils.swift */,
+				DC46155E2DFF8B4000EE940A /* UnifiedSearchModel.swift */,
 				583CA6CB2DDAD8E6005C9429 /* DigraphsUtils.swift */,
 				583CA6CD2DDADA6F005C9429 /* AnagramViewModel.swift */,
 				581ED9022DE2FC8C00D606B6 /* PatternViewModel.swift */,
@@ -124,6 +137,7 @@
 			children = (
 				583CA6D02DDADE93005C9429 /* scrabble_words.sqlite */,
 				584D6D452DDEA438007E40F3 /* trie.bin */,
+				DC4615642DFF9ABA00EE940A /* scrabble_hooks.sqlite */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -131,6 +145,7 @@
 		583CA6D22DDAE52B005C9429 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				DC4615622DFF8B5300EE940A /* UnifiedSearchView.swift */,
 				581ED9042DE2FDA000D606B6 /* PatternFinderView.swift */,
 				581ED9002DE2D45D00D606B6 /* RootView.swift */,
 				581ED8FE2DE2D0E700D606B6 /* LexiconJudgeView.swift */,
@@ -252,6 +267,7 @@
 			files = (
 				584D6D462DDEA438007E40F3 /* trie.bin in Resources */,
 				581ED8FD2DE17BC800D606B6 /* Assets.xcassets in Resources */,
+				DC4615652DFF9ABA00EE940A /* scrabble_hooks.sqlite in Resources */,
 				583CA6D12DDADE93005C9429 /* scrabble_words.sqlite in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -276,8 +292,12 @@
 				581ED9052DE2FDB000D606B6 /* PatternFinderView.swift in Sources */,
 				583CA6CC2DDAD90F005C9429 /* DigraphsUtils.swift in Sources */,
 				583CA6D52DDAE829005C9429 /* ContentView.swift in Sources */,
+				DC4615632DFF8B5300EE940A /* UnifiedSearchView.swift in Sources */,
 				581ED8FF2DE2D0FE00D606B6 /* LexiconJudgeView.swift in Sources */,
 				581ED9032DE2FC9E00D606B6 /* PatternViewModel.swift in Sources */,
+				DC46155F2DFF8B4000EE940A /* DataManager.swift in Sources */,
+				DC4615602DFF8B4000EE940A /* UnifiedSearchModel.swift in Sources */,
+				DC4615612DFF8B4000EE940A /* SpanishUtils.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

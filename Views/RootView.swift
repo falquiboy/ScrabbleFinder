@@ -42,12 +42,23 @@ struct RootView: View {
                     Label("Patrones", systemImage: "text.redaction")
                 }
                 .tag(2)
-
-            // (Opcional) Pestaña 3: Listas, etc.
+            
+            // Nueva interfaz unificada (sin dependencias)
+            UnifiedSearchView()
+                .tabItem {
+                    Label("Unificada", systemImage: "sparkles")
+                }
+                .tag(3)
         }
         .onChange(of: selectedTab) {
-            UIApplication.shared.dismissKeyboard()
+            hideKeyboard()
         }
+    }
+    
+    private func hideKeyboard() {
+        #if canImport(UIKit)
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        #endif
     }
 }
 
