@@ -76,7 +76,7 @@ public class TrieNode: Codable {
         // Handle wildcard '?'
         if patternChar == "?" {
             // Iterate through all possible internal characters (a-z, Ç, K, W)
-            let possibleChars = "ABCÇDEFGHIJKLMNOPQRSTUVWXYZÑKW" // Include your custom digraph chars
+            let possibleChars = "ABCÇDEFGHIJKLMNOPQRSTUVWXYZÑ" // Include your custom digraph chars
             for char in possibleChars {
                 // Check if the character is in the remaining rack
                 if let rackIndex = rack.firstIndex(of: char) {

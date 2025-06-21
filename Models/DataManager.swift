@@ -47,19 +47,31 @@ class DataManager: ObservableObject {
     
     // MARK: - Data Sources
     @Published var isTrieReady = false
+    @Published var isDataReady = false  // True when either trie OR SQLite is ready
     private var trieRoot: TrieNode?
     private var sqliteDB: OpaquePointer?
     private var hooksDB: OpaquePointer?
     
-    // MARK: - Hooks Cache
+    // MARK: - Caches
     private var hooksCache: [String: WordHooks] = [:]
+    private var anagramCache: [String: [String]] = [:]
     private let maxCacheSize = 10000
+    private let maxAnagramCacheSize = 1000
     
     // MARK: - Initialization
     
     init() {
         setupDatabase()
         setupHooksDatabase()
+        
+        // Mark data as ready immediately if SQLite is available (fallback ready)
+        DispatchQueue.main.async {
+            self.isDataReady = (self.sqliteDB != nil)
+            if self.isDataReady {
+                print("✅ SQLite fallback ready - searches can begin")
+            }
+        }
+        
         loadTrie()
     }
     
@@ -82,16 +94,23 @@ class DataManager: ObservableObject {
                     DispatchQueue.main.async {
                         self.trieRoot = trie
                         self.isTrieReady = true
-                        print("✅ Trie loaded successfully")
+                        self.isDataReady = true  // Ensure data is ready with trie
+                        print("✅ Trie loaded successfully - optimal performance ready")
                     }
                 } catch {
                     print("❌ Error decoding trie: \(error)")
                     DispatchQueue.main.async {
                         self.isTrieReady = false
+                        // Keep isDataReady true if SQLite is available as fallback
+                        print("⚠️ Trie failed but SQLite fallback still available")
                     }
                 }
             } else {
                 print("❌ Could not load trie.bin from bundle")
+                DispatchQueue.main.async {
+                    // Keep isDataReady true if SQLite is available as fallback
+                    print("⚠️ Trie load failed but SQLite fallback still available")
+                }
             }
         }
     }
@@ -114,13 +133,40 @@ class DataManager: ObservableObject {
     
     private func setupDatabase() {
         guard let dbPath = Bundle.main.path(forResource: "scrabble_words", ofType: "sqlite") else {
-            print("Database file not found")
+            print("❌ SQLite database file not found")
             return
         }
         
         if sqlite3_open_v2(dbPath, &sqliteDB, SQLITE_OPEN_READONLY, nil) != SQLITE_OK {
-            print("Error opening database")
+            print("❌ Error opening SQLite database")
             sqliteDB = nil
+        } else {
+            print("✅ SQLite database connected successfully")
+            
+            // Verify table structure and data
+            let tableCheckQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name='words';"
+            var statement: OpaquePointer?
+            
+            if sqlite3_prepare_v2(sqliteDB, tableCheckQuery, -1, &statement, nil) == SQLITE_OK {
+                if sqlite3_step(statement) == SQLITE_ROW {
+                    print("✅ words table exists")
+                    
+                    // Check row count for confidence
+                    let countQuery = "SELECT COUNT(*) FROM words;"
+                    var countStatement: OpaquePointer?
+                    
+                    if sqlite3_prepare_v2(sqliteDB, countQuery, -1, &countStatement, nil) == SQLITE_OK {
+                        if sqlite3_step(countStatement) == SQLITE_ROW {
+                            let count = sqlite3_column_int(countStatement, 0)
+                            print("📊 SQLite database ready with \(count) words")
+                        }
+                    }
+                    sqlite3_finalize(countStatement)
+                } else {
+                    print("❌ words table does NOT exist in SQLite")
+                }
+            }
+            sqlite3_finalize(statement)
         }
     }
     
@@ -179,6 +225,35 @@ class DataManager: ObservableObject {
         }
     }
     
+    // MARK: - System Status
+    
+    /// Indicates if any data source is ready for queries
+    var canPerformQueries: Bool {
+        return isDataReady
+    }
+    
+    /// Indicates current data source being used
+    var currentDataSource: String {
+        if isTrieReady {
+            return "Trie (Optimal)"
+        } else if sqliteDB != nil {
+            return "SQLite (Fallback)"
+        } else {
+            return "None (No Data)"
+        }
+    }
+    
+    /// Performance level based on data source
+    var performanceLevel: String {
+        if isTrieReady {
+            return "High"
+        } else if sqliteDB != nil {
+            return "Medium"
+        } else {
+            return "None"
+        }
+    }
+    
     // MARK: - Query Methods
     
     /// Validates a single word using trie (preferred) or SQLite fallback
@@ -194,6 +269,7 @@ class DataManager: ObservableObject {
         }
         
         // Fallback to SQLite
+        print("🔄 Using SQLite fallback for word validation: \(word)")
         return validateWordInDatabase(normalizedWord)
     }
     
@@ -201,20 +277,141 @@ class DataManager: ObservableObject {
     func findAnagrams(for letters: String) -> [String] {
         let normalizedLetters = SpanishUtils.normalize(letters)
         let alphagram = SpanishUtils.generateAlphagram(normalizedLetters)
+        print("🔍 DataManager: letters='\(letters)' -> normalized='\(normalizedLetters)' -> alphagram='\(alphagram)'")
         return findAnagramsByAlphagram(alphagram)
     }
     
-    /// Finds anagrams by precomputed alphagram
+    /// Search result with timing information
+    struct SearchResult {
+        let words: [String]
+        let executionTime: TimeInterval
+        let source: String
+        let isCacheHit: Bool
+    }
+    
+    /// Finds anagrams by precomputed alphagram with caching and timing
     func findAnagramsByAlphagram(_ alphagram: String) -> [String] {
+        let searchResult = findAnagramsWithTiming(alphagram)
+        return searchResult.words
+    }
+    
+    /// Finds anagrams with detailed performance information
+    func findAnagramsWithTiming(_ alphagram: String) -> SearchResult {
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        // Check cache first for blazing fast repeated searches
+        if let cached = anagramCache[alphagram] {
+            let executionTime = CFAbsoluteTimeGetCurrent() - startTime
+            print("⚡ Cache HIT for alphagram: \(alphagram) (\(cached.count) results)")
+            return SearchResult(
+                words: cached, 
+                executionTime: executionTime, 
+                source: "Cache", 
+                isCacheHit: true
+            )
+        }
+        
+        let results: [String]
+        let source: String
+        
+        // Try trie first if available
+        if isTrieReady, let trie = trieRoot {
+            let trieResults = trie.searchByAlphagram(alphagram)
+            results = trieResults.map { SpanishUtils.denormalize($0) }
+                               .sorted(by: SpanishUtils.compareSpanishOrder)
+            source = "Trie"
+        } else {
+            // Fallback to SQLite
+            print("🔄 Using SQLite fallback for anagram search: \(alphagram)")
+            results = findAnagramsInDatabase(alphagram)
+            source = "SQLite"
+        }
+        
+        // Cache results with size management
+        cacheAnagramResults(alphagram: alphagram, results: results)
+        
+        let executionTime = CFAbsoluteTimeGetCurrent() - startTime
+        
+        return SearchResult(
+            words: results, 
+            executionTime: executionTime, 
+            source: source, 
+            isCacheHit: false
+        )
+    }
+    
+    /// SQLite search with optional length constraint for performance
+    private func findAnagramsInDatabase(_ alphagram: String, length: Int? = nil) -> [String] {
+        guard let db = sqliteDB else { 
+            print("❌ No SQLite database available")
+            return [] 
+        }
+        
+        // Build optimized query with length filter if specified
+        let baseQuery = "SELECT word FROM words WHERE alphagram = ?"
+        let query = if let targetLength = length {
+            baseQuery + " AND LENGTH(word) = ? ORDER BY word"
+        } else {
+            baseQuery + " ORDER BY word"
+        }
+        
+        print("🔍 SQLite: Optimized search - alphagram: '\(alphagram)' length: \(length?.description ?? "any")")
+        
+        var statement: OpaquePointer?
+        var results: [String] = []
+        
+        defer {
+            sqlite3_finalize(statement)
+        }
+        
+        guard sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK else {
+            print("❌ SQLite: Failed to prepare optimized query")
+            return []
+        }
+        
+        // Bind parameters
+        sqlite3_bind_text(statement, 1, alphagram, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+        if let targetLength = length {
+            sqlite3_bind_int(statement, 2, Int32(targetLength))
+        }
+        
+        var rowCount = 0
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        while sqlite3_step(statement) == SQLITE_ROW {
+            rowCount += 1
+            if let wordPtr = sqlite3_column_text(statement, 0) {
+                let word = String(cString: wordPtr)
+                let denormalized = SpanishUtils.denormalize(word)
+                results.append(denormalized)
+            }
+        }
+        
+        let executionTime = CFAbsoluteTimeGetCurrent() - startTime
+        print("🚀 SQLite: Found \(rowCount) results in \(String(format: "%.3f", executionTime))s")
+        
+        return results.sorted(by: SpanishUtils.compareSpanishOrder)
+    }
+    
+    /// Finds anagrams by alphagram with length constraint for blazing fast searches
+    func findAnagramsByAlphagram(_ alphagram: String, length: Int?) -> [String] {
         // Try trie first if available
         if isTrieReady, let trie = trieRoot {
             let results = trie.searchByAlphagram(alphagram)
-            return results.map { SpanishUtils.denormalize($0) }
-                         .sorted(by: SpanishUtils.compareSpanishOrder)
+            let denormalized = results.map { SpanishUtils.denormalize($0) }
+            
+            // Apply length filter if specified
+            if let targetLength = length {
+                return denormalized.filter { $0.count == targetLength }
+                                 .sorted(by: SpanishUtils.compareSpanishOrder)
+            } else {
+                return denormalized.sorted(by: SpanishUtils.compareSpanishOrder)
+            }
         }
         
-        // Fallback to SQLite
-        return findAnagramsInDatabase(alphagram)
+        // Fallback to SQLite with length optimization
+        print("🔄 Using SQLite fallback for anagram search: \(alphagram) (length: \(length?.description ?? "any"))")
+        return findAnagramsInDatabase(alphagram, length: length)
     }
     
     // MARK: - Hooks Methods
@@ -303,6 +500,33 @@ class DataManager: ObservableObject {
     /// Clear hooks cache to free memory
     func clearHooksCache() {
         hooksCache.removeAll()
+    }
+    
+    /// Cache anagram results with size management
+    private func cacheAnagramResults(alphagram: String, results: [String]) {
+        // Manage cache size
+        if anagramCache.count >= maxAnagramCacheSize {
+            // Remove oldest entries (simple FIFO)
+            let keysToRemove = Array(anagramCache.keys.prefix(maxAnagramCacheSize / 4))
+            keysToRemove.forEach { anagramCache.removeValue(forKey: $0) }
+            print("🧹 Cleaned anagram cache - removed \(keysToRemove.count) entries")
+        }
+        
+        anagramCache[alphagram] = results
+        print("💾 Cached anagram results for '\(alphagram)' (\(results.count) words)")
+    }
+    
+    /// Clear anagram cache to free memory
+    func clearAnagramCache() {
+        anagramCache.removeAll()
+        print("🧹 Anagram cache cleared")
+    }
+    
+    /// Clear all caches
+    func clearAllCaches() {
+        clearHooksCache()
+        clearAnagramCache()
+        print("🧹 All caches cleared")
     }
     
     // MARK: - Private Hooks Database Queries
@@ -423,7 +647,47 @@ class DataManager: ObservableObject {
         return result
     }
     
+    /// Gets all words from the data source for pattern search
+    func getAllWords() -> [String] {
+        // Try trie first if available (more efficient)
+        if isTrieReady, let trie = trieRoot {
+            return trie.allWords().map { SpanishUtils.denormalize($0) }
+        }
+        
+        // Fallback to SQLite
+        print("🔄 Using SQLite fallback for pattern search - may be slower on physical devices")
+        return getAllWordsFromDatabase()
+    }
+    
     // MARK: - Private SQLite Queries
+    
+    private func getAllWordsFromDatabase() -> [String] {
+        guard let db = sqliteDB else { return [] }
+        
+        let query = "SELECT word FROM words ORDER BY word"
+        var statement: OpaquePointer?
+        var results: [String] = []
+        
+        defer {
+            sqlite3_finalize(statement)
+        }
+        
+        guard sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK else {
+            print("❌ Failed to prepare getAllWords query")
+            return []
+        }
+        
+        while sqlite3_step(statement) == SQLITE_ROW {
+            if let wordPtr = sqlite3_column_text(statement, 0) {
+                let word = String(cString: wordPtr)
+                let denormalized = SpanishUtils.denormalize(word)
+                results.append(denormalized)
+            }
+        }
+        
+        print("📚 Loaded \(results.count) words from SQLite")
+        return results
+    }
     
     private func validateWordInDatabase(_ word: String) -> Bool {
         guard let db = sqliteDB else { return false }
@@ -445,31 +709,5 @@ class DataManager: ObservableObject {
         return sqlite3_step(statement) == SQLITE_ROW
     }
     
-    private func findAnagramsInDatabase(_ alphagram: String) -> [String] {
-        guard let db = sqliteDB else { return [] }
-        
-        let query = "SELECT word FROM words WHERE alphagram = ? ORDER BY word"
-        var statement: OpaquePointer?
-        var results: [String] = []
-        
-        defer {
-            sqlite3_finalize(statement)
-        }
-        
-        guard sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK else {
-            return []
-        }
-        
-        sqlite3_bind_text(statement, 1, alphagram, -1, nil)
-        
-        while sqlite3_step(statement) == SQLITE_ROW {
-            if let wordPtr = sqlite3_column_text(statement, 0) {
-                let word = String(cString: wordPtr)
-                let denormalized = SpanishUtils.denormalize(word)
-                results.append(denormalized)
-            }
-        }
-        
-        return results.sorted(by: SpanishUtils.compareSpanishOrder)
-    }
+    
 }
