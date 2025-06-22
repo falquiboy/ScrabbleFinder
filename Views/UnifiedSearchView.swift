@@ -30,15 +30,41 @@ struct UnifiedSearchView: View {
     @State private var patternExpansionState: [Int: Bool] = [:]
     @State private var safariViewController: SFSafariViewController?
     
+    // MARK: - Hamburger Menu State
+    @State private var showHamburgerMenu = false
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
                 
-                // Fixed compact title
-                Text("+Léxico")
-                    .font(.title2)
-                    .bold()
-                    .multilineTextAlignment(.center)
+                // Header with hamburger menu and title
+                HStack {
+                    // Hamburger Menu Button
+                    Button {
+                        showHamburgerMenu = true
+                    } label: {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.title2)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    
+                    Spacer()
+                    
+                    // Fixed compact title
+                    Text("+Léxico")
+                        .font(.title2)
+                        .bold()
+                        .multilineTextAlignment(.center)
+                    
+                    Spacer()
+                    
+                    // Invisible spacer for balance
+                    Color.clear
+                        .frame(width: 44, height: 44)
+                }
                 
                 // Search Input with external search button
                 HStack(spacing: 8) {
@@ -120,11 +146,6 @@ struct UnifiedSearchView: View {
                         
                         if shouldShowToggles {
                             VStack(spacing: 8) {
-                                HStack {
-                                    Toggle("Mostrar ganchos", isOn: $showHooks)
-                                }
-                                .padding(.horizontal)
-                                
                                 // Dynamic toggle: subanagrams for anagrams, long words for patterns
                                 HStack {
                                     if searchModel.searchResult.mode == .anagram {
@@ -186,6 +207,9 @@ struct UnifiedSearchView: View {
                 performanceToastView
                 , alignment: .bottom
             )
+            .sheet(isPresented: $showHamburgerMenu) {
+                hamburgerMenuSheet
+            }
         }
     }
     
@@ -1961,6 +1985,230 @@ struct UnifiedSearchView: View {
         // Extract original rack from current search query (remove wildcards)
         let cleanedQuery = searchModel.query.replacingOccurrences(of: "?", with: "")
         return cleanedQuery
+    }
+    
+    // MARK: - Hamburger Menu
+    
+    @ViewBuilder
+    private var hamburgerMenuSheet: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Menu Options
+                VStack(spacing: 16) {
+                    // Hooks Toggle
+                    HStack {
+                        Image(systemName: showHooks ? "eye.fill" : "eye")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                            .frame(width: 24)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Mostrar ganchos")
+                                .font(.headline)
+                            Text("Ver extensiones de palabras")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: $showHooks)
+                            .labelsHidden()
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                    
+                    // Copy Words Button
+                    Button {
+                        copyAllWords()
+                        showHamburgerMenu = false
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.on.clipboard")
+                                .font(.title2)
+                                .foregroundColor(.green)
+                                .frame(width: 24)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Copiar palabras")
+                                    .font(.headline)
+                                Text("Todas las palabras en orden alfabético")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .foregroundColor(.primary)
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+                .padding()
+                
+                // Help Section
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Image(systemName: "questionmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.orange)
+                        Text("Ayuda de Sintaxis")
+                            .font(.headline)
+                        Spacer()
+                    }
+                    
+                    helpContent
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+                .padding(.horizontal)
+                
+                Spacer()
+            }
+            .navigationTitle("Menú")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cerrar") {
+                        showHamburgerMenu = false
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+    
+    @ViewBuilder
+    private var helpContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Anagramas
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Anagramas")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Text("LETRAS? - Con comodín")
+                    .font(.caption)
+                    .fontFamily(.monospaced)
+                    .foregroundColor(.blue)
+                Text("Ejemplo: JERAS?")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            Divider()
+            
+            // Patrones
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Patrones")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Text("M...N,RACK - Patrón con rack")
+                    .font(.caption)
+                    .fontFamily(.monospaced)
+                    .foregroundColor(.blue)
+                Text("Ejemplo: J.R.S,AEIO")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("+ABC - Debe contener")
+                    .font(.caption)
+                    .fontFamily(.monospaced)
+                    .foregroundColor(.blue)
+                Text("-XYZ - No debe contener")
+                    .font(.caption)
+                    .fontFamily(.monospaced)
+                    .foregroundColor(.blue)
+                Text("*:5 - Longitud específica")
+                    .font(.caption)
+                    .fontFamily(.monospaced)
+                    .foregroundColor(.blue)
+            }
+            
+            Divider()
+            
+            // Validador
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Validador")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Text("PALABRA ESPACIOS - Validar múltiples")
+                    .font(.caption)
+                    .fontFamily(.monospaced)
+                    .foregroundColor(.blue)
+                Text("Ejemplo: CASA PERRO GATO")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    // MARK: - Copy Functionality
+    
+    private func copyAllWords() {
+        var allWords: [String] = []
+        
+        // Collect all visible words based on current search results
+        switch searchModel.searchResult.mode {
+        case .validator:
+            allWords = searchModel.searchResult.validationResults.map { $0.word }
+            
+        case .anagram:
+            // Add anagram results
+            allWords.append(contentsOf: searchModel.searchResult.anagramResults.map { $0.word })
+            
+            // Add wildcard results
+            allWords.append(contentsOf: searchModel.searchResult.wildcardResults.map { $0.word })
+            
+            // Add extra letter results
+            allWords.append(contentsOf: searchModel.searchResult.extraLetterResults.map { $0.word })
+            
+            // Add subanagram results if showing subanagrams
+            if showSubanagrams {
+                // Relevant wildcard results
+                allWords.append(contentsOf: searchModel.searchResult.relevantWildcardResults.map { $0.word })
+                
+                // No wildcard subanagrams
+                allWords.append(contentsOf: searchModel.searchResult.subanagramsNoWildcard.map { $0.word })
+                
+                // Other wildcard subanagrams
+                allWords.append(contentsOf: searchModel.searchResult.subanagramsWithWildcard.map { $0.word })
+            }
+            
+        case .pattern:
+            if let patternResult = searchModel.searchResult.patternSearchResult {
+                for (_, words) in patternResult.wordsByLength {
+                    allWords.append(contentsOf: words)
+                }
+            }
+        }
+        
+        // Remove duplicates and sort alphabetically using Spanish order
+        let uniqueWords = Array(Set(allWords))
+        let sortedWords = uniqueWords.sorted { SpanishUtils.compareSpanishOrder($0, $1) }
+        
+        // Convert to uppercase and denormalize digraphs
+        let finalWords = sortedWords.map { word in
+            SpanishUtils.denormalize(word).uppercased()
+        }
+        
+        // Create final string with one word per line
+        let copyText = finalWords.joined(separator: "\n")
+        
+        // Copy to clipboard
+        UIPasteboard.general.string = copyText
+        
+        // Could add a toast notification here if desired
+        print("📋 Copied \(finalWords.count) words to clipboard")
     }
     
     // MARK: - RAE Dictionary Navigation
