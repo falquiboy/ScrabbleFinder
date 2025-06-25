@@ -62,13 +62,14 @@
 		583CA6D02DDADE93005C9429 /* scrabble_words.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = scrabble_words.sqlite; sourceTree = "<group>"; };
 		583CA6D42DDAE822005C9429 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		584D6D452DDEA438007E40F3 /* trie.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = trie.bin; sourceTree = "<group>"; };
-		58F28F8C2DDCF1AE003813CC /* ScrabbleFinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScrabbleFinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		58F28F8C2DDCF1AE003813CC /* +Léxico.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "+Léxico.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		58F28F962DDE4875003813CC /* TrieKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TrieKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC46155C2DFF8B4000EE940A /* DataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataManager.swift; sourceTree = "<group>"; };
 		DC46155D2DFF8B4000EE940A /* SpanishUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanishUtils.swift; sourceTree = "<group>"; };
 		DC46155E2DFF8B4000EE940A /* UnifiedSearchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedSearchModel.swift; sourceTree = "<group>"; };
 		DC4615622DFF8B5300EE940A /* UnifiedSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedSearchView.swift; sourceTree = "<group>"; };
 		DC4615642DFF9ABA00EE940A /* scrabble_hooks.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = scrabble_hooks.sqlite; sourceTree = "<group>"; };
+		DC4EA3472E0B54B000F12F27 /* ScrabbleFinder-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "ScrabbleFinder-Info.plist"; sourceTree = "<group>"; };
 		DCA61D2B2DF2521E00EBF005 /* shared-types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "shared-types.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -107,12 +108,13 @@
 		583CA6B32DD97075005C9429 = {
 			isa = PBXGroup;
 			children = (
+				DC4EA3472E0B54B000F12F27 /* ScrabbleFinder-Info.plist */,
 				583CA6BE2DD97075005C9429 /* App */,
 				583CA6CA2DDAD8B8005C9429 /* Models */,
 				583CA6D22DDAE52B005C9429 /* Views */,
 				583CA6CF2DDADE68005C9429 /* Resources */,
 				583CA6D72DDB6224005C9429 /* Assets */,
-				58F28F8C2DDCF1AE003813CC /* ScrabbleFinder.app */,
+				58F28F8C2DDCF1AE003813CC /* +Léxico.app */,
 				58F28F962DDE4875003813CC /* TrieKit.framework */,
 				58F28F972DDE4875003813CC /* TrieKit */,
 			);
@@ -196,7 +198,7 @@
 			packageProductDependencies = (
 			);
 			productName = ScrabbleFinder;
-			productReference = 58F28F8C2DDCF1AE003813CC /* ScrabbleFinder.app */;
+			productReference = 58F28F8C2DDCF1AE003813CC /* +Léxico.app */;
 			productType = "com.apple.product-type.application";
 		};
 		58F28F952DDE4875003813CC /* TrieKit */ = {
@@ -452,6 +454,9 @@
 				DEVELOPMENT_TEAM = BB37URD2G3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ScrabbleFinder-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = masLexico;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.word-games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -463,11 +468,15 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.maslexico.ScrabbleFinder;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.maslexico.maslexico;
+				PRODUCT_NAME = "masLexico";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -482,6 +491,9 @@
 				DEVELOPMENT_TEAM = BB37URD2G3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ScrabbleFinder-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = masLexico;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.word-games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -493,11 +505,15 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.maslexico.ScrabbleFinder;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = app.maslexico.maslexico;
+				PRODUCT_NAME = "masLexico";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
