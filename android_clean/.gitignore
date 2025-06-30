@@ -1,0 +1,46 @@
+# Android
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Gradle
+.gradle/
+build/
+
+# IntelliJ
+*.iws
+/.idea/workspace.xml
+/.idea/tasks.xml
+/.idea/gradle.xml
+/.idea/assetWizardSettings.xml
+/.idea/dictionaries
+/.idea/libraries
+/.idea/shelf
+/.idea/modules.xml
+/.idea/misc.xml
+/.idea/compiler.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/caches/
+/.idea/runConfigurations.xml
+
+# Kotlin
+.kotlin/
+
+# Local configuration file
+local.properties
+
+# Corrupted/backup files
+*_corrupted.kt
+*_backup.kt

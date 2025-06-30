@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MasLexico" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/scrabble_green</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorSecondary">@color/scrabble_green_light</item>
+        <item name="android:statusBarColor">@color/scrabble_green</item>
+    </style>
+</resources>

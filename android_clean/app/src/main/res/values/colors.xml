@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="scrabble_green">#2E7D32</color>
+    <color name="scrabble_green_light">#66BB6A</color>
+    <color name="scrabble_beige">#F5F5DC</color>
+    <color name="word_blue">#1976D2</color>
+    <color name="hook_gray">#757575</color>
+</resources>
